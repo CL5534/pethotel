@@ -1,187 +1,375 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export default function Signup() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  // 테스트 값(원하면 지워도 됨)
+  const [name, setName] = useState("임꺽정");
+  const [email, setEmail] = useState("cof5534@gmail.com");
+  const [phone, setPhone] = useState("010-1234-5678");
+  const [address1, setAddress1] = useState("병점");
+  const [address2, setAddress2] = useState("107동");
+  const [pw, setPw] = useState("@1qaz2wsx3e");
+  const [pw2, setPw2] = useState("@1qaz2wsx3e");
+
+  const [errorMsg, setErrorMsg] = useState<string>("");
+  const [successMsg, setSuccessMsg] = useState<string>("");
+
+  function isValidEmail(v: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  function normalizeEmail(v: string) {
+    return v.trim().toLowerCase();
+  }
+
+  // 전화번호: "문자 막기"가 목적. (010/자리수 고정 X)
+  // 저장은 입력값을 최대한 유지하되, 양쪽 공백 제거만.
+  function normalizePhone(v: string) {
+    return v.trim();
+  }
+
+  // 비밀번호 정책(원하면 여기만 수정하면 됨)
+  function validatePassword(password: string) {
+    if (password.length < 8) return "비밀번호는 8자 이상이어야 합니다.";
+    if (/\s/.test(password)) return "비밀번호에는 공백을 사용할 수 없습니다.";
+
+    // 아래 3줄이 “영문/숫자/특수문자” 강제 규칙
+    // 원하지 않으면 지우면 됨.
+    if (!/[A-Za-z]/.test(password)) return "비밀번호에는 영문이 최소 1자 이상 포함되어야 합니다.";
+    if (!/[0-9]/.test(password)) return "비밀번호에는 숫자가 최소 1자 이상 포함되어야 합니다.";
+    if (!/[`~!@#$%^&*()_\-+=\[\]{};:'",.<>/?\\|]/.test(password))
+      return "비밀번호에는 특수문자가 최소 1자 이상 포함되어야 합니다.";
+
+    return "";
+  }
+
+  function validate() {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedAddress1 = address1.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedName) return "이름을 입력해주세요.";
+    if (!trimmedEmail) return "이메일을 입력해주세요.";
+    if (!isValidEmail(trimmedEmail)) return "이메일 형식이 올바르지 않습니다.";
+
+    if (!pw) return "비밀번호를 입력해주세요.";
+    const pwMsg = validatePassword(pw);
+    if (pwMsg) return pwMsg;
+
+    if (pw !== pw2) return "비밀번호가 일치하지 않습니다.";
+
+    if (!trimmedPhone) return "휴대폰 번호를 입력해주세요.";
+
+    // ✅ 문자(w 같은거) 막기: 숫자/하이픈/공백만 허용
+    if (!/^[0-9\-\s]+$/.test(trimmedPhone)) {
+      return "휴대폰 번호에는 숫자, 하이픈(-), 공백만 입력할 수 있습니다.";
+    }
+
+    // 너무 짧은 건 막기(옛날 번호 고려해서 넉넉하게)
+    const phoneDigits = trimmedPhone.replace(/\D/g, "");
+    if (phoneDigits.length < 8) return "휴대폰 번호를 정확히 입력해주세요.";
+
+    if (!trimmedAddress1) return "기본 주소를 입력해주세요.";
+    return "";
+  }
+
+  // ✅ 에러 처리 통합(딱 1개)
+  function mapErrorToKorean(err: any) {
+    const raw = (err?.message ?? "").toString();
+    const m = raw.toLowerCase();
+    const code = err?.code;
+
+    // 1) DB UNIQUE(또는 유사 문구) - auth 트리거에서 실패해도 이런 문구가 섞여 나올 수 있음
+    if (
+      code === "23505" ||
+      m.includes("duplicate key value") ||
+      m.includes("violates unique constraint")
+    ) {
+      // 어떤 컬럼인지 최대한 구분
+      if (m.includes("profiles_email_unique") || m.includes("email")) {
+        return "이미 사용 중인 이메일입니다.";
+      }
+      if (m.includes("profiles_phone_unique") || m.includes("phone")) {
+        return "이미 등록된 휴대폰 번호입니다.";
+      }
+      return "이미 등록된 정보가 있습니다.";
+    }
+
+    // 2) Auth 계열
+    if (m.includes("already registered") || m.includes("already exists") || m.includes("user already registered")) {
+      return "이미 가입된 이메일입니다. 로그인 페이지에서 로그인해주세요.";
+    }
+    if (m.includes("invalid email") || (m.includes("email") && m.includes("invalid"))) {
+      return "이메일 형식이 올바르지 않습니다.";
+    }
+    if (m.includes("password") && (m.includes("weak") || m.includes("length"))) {
+      return "비밀번호가 너무 약합니다. 비밀번호 조건을 다시 확인해주세요.";
+    }
+    if (m.includes("rate limit") || m.includes("too many requests")) {
+      return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
+    }
+
+    // 3) 권한/RLS
+    if (m.includes("permission") || m.includes("not allowed") || m.includes("rls")) {
+      return "권한 설정 문제로 처리가 불가능합니다. 관리자에게 문의해주세요.";
+    }
+
+    // 4) 네트워크
+    if (m.includes("network") || m.includes("failed to fetch") || m.includes("fetch")) {
+      return "네트워크 연결이 불안정합니다. 인터넷 상태를 확인해주세요.";
+    }
+
+    return "오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+  }
+
+  // (선택) 가입 전에 미리 중복 확인: RLS 때문에 막혀있을 수 있음.
+  // 막혀도 DB UNIQUE가 최종 방어라서 “없어도 됨”.
+  async function precheckDuplicate(normalizedEmail: string, normalizedPhone: string) {
+    // 이메일
+    const { data: emailRow, error: emailErr } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
+
+    if (!emailErr && emailRow) return "이미 가입된 이메일입니다. 로그인 페이지에서 로그인해주세요.";
+
+    // 전화번호
+    const { data: phoneRow, error: phoneErr } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("phone", normalizedPhone)
+      .maybeSingle();
+
+    if (!phoneErr && phoneRow) return "이미 등록된 휴대폰 번호입니다. 다른 번호를 사용해주세요.";
+
+    // RLS로 에러 나는 경우는 그냥 통과(최종은 UNIQUE가 막음)
+    return "";
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErrorMsg("");
+    setSuccessMsg("");
+
+    const v = validate();
+    if (v) {
+      setErrorMsg(v);
+      return;
+    }
+
+    setLoading(true);
+
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedName = name.trim();
+    const normalizedPhone = normalizePhone(phone);
+    const normalizedAddress1 = address1.trim();
+    const normalizedAddress2 = address2.trim();
+
+    try {
+      // ✅ (선택) 사전 중복 체크
+      const dupMsg = await precheckDuplicate(normalizedEmail, normalizedPhone);
+      if (dupMsg) {
+        setErrorMsg(dupMsg);
+        return;
+      }
+
+      // ✅ 핵심: 이제 프론트에서 profiles.insert() 하지 않음
+      // DB 트리거가 자동으로 profiles를 생성한다.
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password: pw,
+        options: {
+          data: {
+            name: normalizedName,
+            phone: normalizedPhone,
+            address1: normalizedAddress1,
+            address2: normalizedAddress2,
+            role: "USER",
+          },
+        },
+      });
+
+      if (authError) {
+        setErrorMsg(mapErrorToKorean(authError));
+        return;
+      }
+
+      const user = authData.user;
+      if (!user) {
+        setErrorMsg("회원가입은 완료되었지만 사용자 정보를 가져오지 못했습니다. 잠시 후 다시 시도해주세요.");
+        return;
+      }
+
+      // 성공 처리
+      if (!authData.session) {
+        setSuccessMsg("가입이 완료되었습니다. 이메일 인증 메일을 확인해주세요. 인증 후 로그인할 수 있습니다.");
+      } else {
+        setSuccessMsg("가입이 완료되었습니다. 로그인 페이지로 이동합니다.");
+        router.push("/Common/Login");
+        return;
+      }
+    } catch (err: any) {
+      console.error("Signup Error:", err);
+      setErrorMsg(mapErrorToKorean(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-        {/* 로고 및 헤더 */}
         <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-blue-600 font-bold text-3xl mb-2 hover:opacity-80 transition-opacity">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-blue-600 font-bold text-3xl mb-2 hover:opacity-80 transition-opacity"
+          >
             <span>🐾</span>
             <span>PET HOTEL</span>
           </Link>
-          <h2 className="mt-4 text-2xl font-bold text-gray-900">
-            회원가입
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            반려동물을 위한 최고의 선택, 펫호텔과 함께하세요.
-          </p>
+          <h2 className="mt-4 text-2xl font-bold text-gray-900">회원가입</h2>
+          <p className="mt-2 text-sm text-gray-600">반려동물을 위한 최고의 선택, 펫호텔과 함께하세요.</p>
         </div>
 
-        {/* 회원가입 폼 */}
-        <form className="mt-8 space-y-6">
+        {errorMsg && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {errorMsg}
+          </div>
+        )}
+        {successMsg && (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {successMsg}
+          </div>
+        )}
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
-            {/* 이름 */}
             <div>
               <label htmlFor="name" className="block text-sm font-bold text-gray-700 mb-1">
                 이름
               </label>
               <input
                 id="name"
-                name="name"
                 type="text"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
                 placeholder="홍길동"
               />
             </div>
 
-            {/* 이메일 */}
             <div>
               <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-1">
                 이메일
               </label>
               <input
                 id="email"
-                name="email"
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
                 placeholder="example@email.com"
               />
             </div>
 
-            {/* 비밀번호 */}
             <div>
               <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-1">
                 비밀번호
               </label>
               <input
                 id="password"
-                name="password"
                 type="password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
-                placeholder="8자 이상 입력해주세요"
+                value={pw}
+                onChange={(e) => setPw(e.target.value)}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
+                placeholder="영문/숫자/특수문자 포함 8자 이상"
               />
             </div>
 
-            {/* 비밀번호 확인 */}
             <div>
               <label htmlFor="password-confirm" className="block text-sm font-bold text-gray-700 mb-1">
                 비밀번호 확인
               </label>
               <input
                 id="password-confirm"
-                name="password-confirm"
                 type="password"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                value={pw2}
+                onChange={(e) => setPw2(e.target.value)}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
                 placeholder="비밀번호를 한번 더 입력해주세요"
               />
             </div>
 
-            {/* 휴대폰 번호 */}
             <div>
               <label htmlFor="phone" className="block text-sm font-bold text-gray-700 mb-1">
                 휴대폰 번호
               </label>
               <input
                 id="phone"
-                name="phone"
                 type="tel"
                 required
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
-                placeholder="010-1234-5678"
+                value={phone}
+                onChange={(e) => {
+                  // 입력 단계에서 문자 제거: 숫자/하이픈/공백만 허용
+                  const cleaned = e.target.value.replace(/[^0-9\-\s]/g, "");
+                  setPhone(cleaned);
+                }}
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-200 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
+                placeholder="예: 010-1234-5678"
               />
             </div>
 
-            {/* 주소 */}
             <div>
-              <label htmlFor="address" className="block text-sm font-bold text-gray-700 mb-1">
-                주소
-              </label>
+              <label className="block text-sm font-bold text-gray-700 mb-1">주소</label>
               <div className="space-y-2">
                 <input
-                  id="address"
-                  name="address"
+                  id="address1"
                   type="text"
                   required
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                  value={address1}
+                  onChange={(e) => setAddress1(e.target.value)}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
                   placeholder="기본 주소"
                 />
                 <input
-                  id="address-detail"
-                  name="address-detail"
+                  id="address2"
                   type="text"
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 placeholder-gray-400 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-50 focus:bg-white"
+                  value={address2}
+                  onChange={(e) => setAddress2(e.target.value)}
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-200 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 focus:bg-white"
                   placeholder="상세 주소 (동/호수)"
                 />
               </div>
             </div>
           </div>
 
-          {/* 약관 동의 */}
-          <div className="flex items-center">
-            <input
-              id="terms"
-              name="terms"
-              type="checkbox"
-              required
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer"
-            />
-            <label htmlFor="terms" className="ml-2 block text-sm text-gray-600 cursor-pointer select-none">
-              <span className="text-blue-600 font-bold">[필수]</span> 이용약관 및 개인정보 처리방침에 동의합니다.
-            </label>
-          </div>
-
           <button
             type="submit"
-            className="w-full flex justify-center py-3.5 px-4 border border-transparent text-base font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all shadow-lg shadow-blue-100 hover:shadow-xl hover:-translate-y-0.5"
+            disabled={loading}
+            className="w-full flex justify-center py-3.5 px-4 text-base font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            가입하기
+            {loading ? "가입 처리 중..." : "가입하기"}
           </button>
         </form>
-
-        {/* 소셜 로그인 구분선 */}
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-medium">
-                SNS 계정으로 간편 가입
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <button className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-              </svg>
-              Google
-            </button>
-            <button className="w-full inline-flex justify-center items-center py-2.5 px-4 rounded-xl shadow-sm bg-[#FEE500] text-sm font-medium text-[#191919] hover:bg-[#FDD835] transition-colors">
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 3C7.58 3 4 5.79 4 9.24c0 2.16 1.4 4.06 3.54 5.17-.16.58-.57 2.1-.66 2.42-.1.38.14.38.29.25l3.52-2.33c.43.06.87.09 1.31.09 4.42 0 8-2.79 8-6.24C20 5.79 16.42 3 12 3z" />
-              </svg>
-              Kakao
-            </button>
-          </div>
-        </div>
-
-        <p className="mt-8 text-center text-sm text-gray-600">
-          이미 계정이 있으신가요?{' '}
-          <Link href="/Common/Login" className="font-bold text-blue-600 hover:text-blue-700 ml-1">
-            로그인
-          </Link>
-        </p>
       </div>
     </div>
   );
