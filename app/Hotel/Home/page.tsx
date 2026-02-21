@@ -19,7 +19,7 @@ export default function Home() {
             전문 펫 시터와 24시간 케어 시스템으로<br />
             보호자님의 소중한 가족을 따뜻하게 맞이합니다.
           </p>
-          <Link href="/reservation">
+          <Link href="/Hotel/Booking">
             <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 px-10 rounded-full text-xl transition-transform transform hover:scale-105 shadow-lg">
               지금 바로 예약하기
             </button>
