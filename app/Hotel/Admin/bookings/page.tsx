@@ -1,309 +1,271 @@
 "use client";
-import { useState } from "react";
+
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays,
+  isSameDay,
+  addMonths,
+  subMonths,
+  parseISO,
+  isWithinInterval,
+  startOfDay,
+} from "date-fns";
+import { ko } from "date-fns/locale";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 type Status = "대기" | "확정" | "거절";
 
-type Booking = {
-  id: string;
-  petName: string;
-  breed: string;
-  weight: string;
-  ownerName: string;
-  ownerPhone: string;
-  roomName: string;
-  checkIn: string;
-  checkOut: string;
-  nights: number;
-  amount: number;
-  status: Status;
-  notes: string;
-  createdAt: string;
-};
-
-const INITIAL_BOOKINGS: Booking[] = [
-  {
-    id: "BK-2025-010",
-    petName: "초코",
-    breed: "말티즈",
-    weight: "3.2kg",
-    ownerName: "김지영",
-    ownerPhone: "010-1234-5678",
-    roomName: "스탠다드 룸",
-    checkIn: "2025-02-25",
-    checkOut: "2025-02-28",
-    nights: 3,
-    amount: 90000,
-    status: "대기",
-    notes: "낯선 사람에게 짖어요. 사료 로얄캐닌.",
-    createdAt: "2025-02-21 09:15",
-  },
-  {
-    id: "BK-2025-011",
-    petName: "뭉치",
-    breed: "골든 리트리버",
-    weight: "28kg",
-    ownerName: "이현우",
-    ownerPhone: "010-9876-5432",
-    roomName: "프리미엄 스위트",
-    checkIn: "2025-03-01",
-    checkOut: "2025-03-05",
-    nights: 4,
-    amount: 320000,
-    status: "대기",
-    notes: "특이사항 없음",
-    createdAt: "2025-02-21 11:30",
-  },
-  {
-    id: "BK-2025-009",
-    petName: "루비",
-    breed: "비숑프리제",
-    weight: "4.5kg",
-    ownerName: "박수민",
-    ownerPhone: "010-5555-1234",
-    roomName: "스탠다드 룸",
-    checkIn: "2025-02-22",
-    checkOut: "2025-02-24",
-    nights: 2,
-    amount: 60000,
-    status: "확정",
-    notes: "닭고기 알레르기 있어요.",
-    createdAt: "2025-02-19 16:45",
-  },
-  {
-    id: "BK-2025-008",
-    petName: "두부",
-    breed: "포메라니안",
-    weight: "2.8kg",
-    ownerName: "최민준",
-    ownerPhone: "010-7777-9999",
-    roomName: "스탠다드 룸",
-    checkIn: "2025-02-20",
-    checkOut: "2025-02-21",
-    nights: 1,
-    amount: 30000,
-    status: "거절",
-    notes: "",
-    createdAt: "2025-02-18 08:00",
-  },
-];
-
-const STATUS_STYLE: Record<Status, string> = {
-  확정: "bg-green-100 text-green-700",
-  대기: "bg-yellow-100 text-yellow-700",
-  거절: "bg-red-100 text-red-600",
-};
-
-const STATUS_ICON: Record<Status, string> = {
-  확정: "✅",
-  대기: "⏳",
-  거절: "❌",
-};
-
-export default function AdminBookings() {
-  const [bookings, setBookings] = useState<Booking[]>(INITIAL_BOOKINGS);
-  const [filter, setFilter] = useState<"전체" | Status>("전체");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [confirmModal, setConfirmModal] = useState<{ id: string; action: "확정" | "거절" } | null>(null);
-  const [notified, setNotified] = useState<string[]>([]);
-
-  const handleAction = (id: string, action: "확정" | "거절") => {
-    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status: action } : b)));
-    // 확정 시 "알림 전송" 시뮬레이션
-    if (action === "확정") {
-      setNotified((prev) => [...prev, id]);
-      setTimeout(() => setNotified((prev) => prev.filter((n) => n !== id)), 3000);
-    }
-    setConfirmModal(null);
-  };
-
-  const filtered = filter === "전체" ? bookings : bookings.filter((b) => b.status === filter);
-
-  const counts = {
-    전체: bookings.length,
-    대기: bookings.filter((b) => b.status === "대기").length,
-    확정: bookings.filter((b) => b.status === "확정").length,
-    거절: bookings.filter((b) => b.status === "거절").length,
-  };
+function Toast({ message, type, onClose }: { message: string; type: "success" | "error"; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [onClose]);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
-      {/* 헤더 */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">ADMIN</span>
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900">예약 승인 관리</h2>
-        <p className="text-gray-500 text-sm mt-1">대기 중인 예약을 승인하거나 거절하세요.</p>
-      </div>
+    <div className={`fixed top-10 left-1/2 -translate-x-1/2 z-[100] px-10 py-5 rounded-2xl shadow-2xl font-black text-xl flex items-center gap-3 animate-bounce ${type === "success" ? "bg-blue-600 text-white" : "bg-red-600 text-white"}`}>
+      {type === "success" ? "✅" : "⚠️"} {message}
+    </div>
+  );
+}
 
-      {/* 알림 토스트 */}
-      {notified.length > 0 && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-3 rounded-full shadow-lg text-sm font-bold animate-bounce">
-          ✅ 보호자에게 예약 확정 알림을 전송했습니다!
-        </div>
-      )}
+function mapDbToUiStatus(dbStatus: string): Status {
+  const s = String(dbStatus ?? "").toLowerCase();
+  if (s === "confirmed") return "확정";
+  if (s === "canceled" || s === "cancelled") return "거절";
+  return "대기";
+}
 
-      {/* 통계 */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-3 text-center">
-          <p className="text-2xl font-bold text-yellow-600">{counts.대기}</p>
-          <p className="text-xs text-yellow-700 mt-0.5 font-medium">승인 대기</p>
-        </div>
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-3 text-center">
-          <p className="text-2xl font-bold text-green-600">{counts.확정}</p>
-          <p className="text-xs text-green-700 mt-0.5 font-medium">확정</p>
-        </div>
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-3 text-center">
-          <p className="text-2xl font-bold text-red-500">{counts.거절}</p>
-          <p className="text-xs text-red-600 mt-0.5 font-medium">거절</p>
-        </div>
-      </div>
+export default function AdminBookings() {
+  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<any[]>([]);
+  
+  // ✅ 브라우저 저장소에서 기존 설정 불러오기
+  const [approveMode, setApproveMode] = useState<"manual" | "auto">(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('approveMode') as "manual" | "auto") || "manual";
+    }
+    return "manual";
+  });
 
-      {/* 필터 탭 */}
-      <div className="flex gap-2 mb-5">
-        {(["전체", "대기", "확정", "거절"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors
-              ${filter === tab ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const fetchBookings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data: bookingRows, error } = await supabase
+        .from("bookings")
+        .select(`*, rooms(name), profiles(name, email), pets!bookings_pet_id_fkey(name)`)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      if (bookingRows) {
+        setBookings(bookingRows.map(b => ({
+          ...b,
+          uiStatus: mapDbToUiStatus(b.status),
+          roomName: b.rooms?.name || "객실 미지정",
+          userName: b.profiles?.name || "성함 없음",
+          petDisplayName: b.pets?.name || b.pet_name || "강아지"
+        })));
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const showToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+  };
+
+  // ✅ 상태 업데이트 함수
+  const updateStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase.from("bookings").update({ status: newStatus }).eq("id", id);
+    if (error) {
+      showToast("처리에 실패했습니다.", "error");
+    } else {
+      fetchBookings();
+    }
+  };
+
+  // ✅ 자동 승인 모드 토글 및 저장
+  const toggleApproveMode = () => {
+    const nextMode = approveMode === "manual" ? "auto" : "manual";
+    setApproveMode(nextMode);
+    localStorage.setItem('approveMode', nextMode);
+    showToast(`자동 승인 모드가 ${nextMode === 'auto' ? '활성화' : '비활성화'} 되었습니다.`, "success");
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    fetchBookings();
+
+    const channel = supabase.channel("admin_refresher")
+      .on("postgres_changes", { event: "*", schema: "public", table: "bookings" }, async (payload) => {
+        // 🚀 자동 승인 핵심 로직: 새로운 데이터(INSERT)가 들어왔을 때
+        if (payload.eventType === "INSERT" && approveMode === "auto") {
+          const newBooking = payload.new;
+          if (newBooking.status === "pending" || !newBooking.status) {
+            await supabase.from("bookings").update({ status: "confirmed" }).eq("id", newBooking.id);
+            showToast("새 예약이 자동 승인되었습니다.", "success");
+          }
+        }
+        fetchBookings();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchBookings, approveMode]); // approveMode가 바뀔 때 리스너가 최신 모드값을 알 수 있게 함
+
+  const calendarDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(currentMonth));
+    const end = endOfWeek(endOfMonth(currentMonth));
+    const days = [];
+    let day = start;
+    while (day <= end) {
+      days.push(day);
+      day = addDays(day, 1);
+    }
+    return days;
+  }, [currentMonth]);
+
+  const getBookingsForDay = (day: Date) => {
+    return bookings.filter((b) => {
+      if (b.uiStatus === "거절") return false; 
+      const start = parseISO(b.check_in);
+      const end = parseISO(b.check_out);
+      return isWithinInterval(startOfDay(day), { start: startOfDay(start), end: startOfDay(end) });
+    });
+  };
+
+  const selectedDayBookings = useMemo(() => {
+    const targetYmd = format(selectedDate, "yyyy-MM-dd");
+    return bookings.filter(b => {
+        const start = b.check_in;
+        const end = b.check_out;
+        return targetYmd >= start && targetYmd <= end;
+    }).sort((a, b) => (a.uiStatus === "대기" ? -1 : 1));
+  }, [bookings, selectedDate]);
+
+  if (!mounted) return null;
+
+  return (
+    <div className="max-w-[1600px] mx-auto p-6 min-h-screen bg-gray-100 flex flex-col gap-6 font-sans">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-gray-200">
+        <h1 className="text-3xl font-black text-gray-900 tracking-tight">🗓️ 예약 관리 시스템</h1>
+        <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-200">
+          <span className="text-lg font-bold px-4 text-gray-600">자동 승인 모드</span>
+          <button 
+            onClick={toggleApproveMode}
+            className={`px-10 py-3 rounded-xl text-xl font-black transition-all shadow-md active:scale-95 ${approveMode === "auto" ? "bg-green-600 text-white" : "bg-gray-400 text-white"}`}
           >
-            {tab}
-            {counts[tab] > 0 && <span className="ml-1 opacity-60">({counts[tab]})</span>}
+            {approveMode === "auto" ? "켜짐" : "꺼짐"}
           </button>
-        ))}
+        </div>
       </div>
 
-      {/* 예약 리스트 */}
-      <div className="space-y-4">
-        {filtered.map((booking) => (
-          <div key={booking.id} className={`bg-white border rounded-2xl overflow-hidden shadow-sm
-            ${booking.status === "대기" ? "border-yellow-200" : "border-gray-200"}`}>
-            
-            {/* 메인 카드 */}
-            <div
-              className="p-4 cursor-pointer"
-              onClick={() => setExpandedId(expandedId === booking.id ? null : booking.id)}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl shrink-0">🐾</div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-gray-900">{booking.petName}</span>
-                      <span className="text-xs text-gray-400">{booking.breed} · {booking.weight}</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${STATUS_STYLE[booking.status]}`}>
-                        {STATUS_ICON[booking.status]} {booking.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {booking.ownerName} · {booking.roomName}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {booking.checkIn} ~ {booking.checkOut} · {booking.nights}박
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-bold text-gray-900 text-sm">₩{booking.amount.toLocaleString()}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{expandedId === booking.id ? "▲" : "▼"}</p>
-                </div>
-              </div>
+      <div className="flex flex-col xl:flex-row gap-8">
+        {/* 캘린더 패널 */}
+        <div className="xl:w-[450px] flex flex-col">
+          <div className="bg-white rounded-[40px] shadow-xl p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-8">
+              <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="text-3xl p-2 hover:bg-gray-100 rounded-full transition-all">◀</button>
+              <h2 className="text-2xl font-black">{format(currentMonth, "yyyy년 M월")}</h2>
+              <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="text-3xl p-2 hover:bg-gray-100 rounded-full transition-all">▶</button>
             </div>
-
-            {/* 상세 & 승인 버튼 */}
-            {expandedId === booking.id && (
-              <div className="border-t border-gray-100 bg-gray-50 px-4 py-4 space-y-3">
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">보호자</p>
-                    <p className="font-medium text-gray-800">{booking.ownerName}</p>
+            <div className="grid grid-cols-7 gap-1">
+              {["일", "월", "화", "수", "목", "금", "토"].map((d, i) => (
+                <div key={d} className={`text-center py-2 text-sm font-black ${i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-gray-400"}`}>{d}</div>
+              ))}
+              {calendarDays.map((day, idx) => {
+                const dayBookings = getBookingsForDay(day);
+                const isSelected = isSameDay(day, selectedDate);
+                const isCurrentMonth = day.getMonth() === currentMonth.getMonth();
+                const pendingCount = dayBookings.filter(b => b.uiStatus === "대기").length;
+                return (
+                  <div key={idx} onClick={() => setSelectedDate(day)}
+                    className={`h-20 border rounded-2xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative
+                      ${!isCurrentMonth ? "opacity-20" : "opacity-100"}
+                      ${isSelected ? "bg-blue-600 text-white shadow-lg scale-105 z-10 border-blue-600" : "bg-white text-gray-800 hover:bg-gray-50 border-gray-100"}
+                    `}
+                  >
+                    <span className="text-lg font-bold">{format(day, "d")}</span>
+                    {pendingCount > 0 && <div className="w-3 h-3 bg-orange-500 rounded-full animate-pulse" />}
+                    {dayBookings.length > 0 && pendingCount === 0 && <div className="w-3 h-3 bg-green-500 rounded-full" />}
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">연락처</p>
-                    <p className="font-medium text-gray-800">{booking.ownerPhone}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">예약 번호</p>
-                    <p className="font-mono text-xs text-gray-700">{booking.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-0.5">신청 시각</p>
-                    <p className="text-xs text-gray-700">{booking.createdAt}</p>
-                  </div>
-                </div>
-                {booking.notes && (
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-                    <p className="text-xs text-amber-700">💬 요청사항: {booking.notes}</p>
-                  </div>
-                )}
-
-                {/* 승인/거절 버튼 — 대기 상태일 때만 */}
-                {booking.status === "대기" && (
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => setConfirmModal({ id: booking.id, action: "거절" })}
-                      className="flex-1 border border-red-200 text-red-500 py-3 rounded-xl font-bold hover:bg-red-50 transition-colors text-sm"
-                    >
-                      ❌ 거절하기
-                    </button>
-                    <button
-                      onClick={() => setConfirmModal({ id: booking.id, action: "확정" })}
-                      className="flex-[2] bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-colors text-sm"
-                    >
-                      ✅ 예약 확정하기
-                    </button>
-                  </div>
-                )}
-                {booking.status === "확정" && (
-                  <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2 text-center">
-                    <p className="text-sm text-green-700 font-medium">✅ 확정 완료 — 보호자에게 알림이 전송되었습니다</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* 확인 모달 */}
-      {confirmModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-            <div className="text-3xl text-center mb-3">
-              {confirmModal.action === "확정" ? "✅" : "❌"}
-            </div>
-            <h3 className="font-bold text-gray-900 text-center text-lg mb-2">
-              예약을 {confirmModal.action}하시겠어요?
-            </h3>
-            {confirmModal.action === "확정" && (
-              <p className="text-sm text-gray-400 text-center mb-4">
-                확정 즉시 보호자에게 알림 문자가 전송됩니다.
-              </p>
-            )}
-            {confirmModal.action === "거절" && (
-              <p className="text-sm text-gray-400 text-center mb-4">
-                거절 사유를 보호자에게 별도로 안내해주세요.
-              </p>
-            )}
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmModal(null)}
-                className="flex-1 border border-gray-200 py-3 rounded-xl font-bold text-gray-600 hover:bg-gray-50"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => handleAction(confirmModal.id, confirmModal.action)}
-                className={`flex-1 py-3 rounded-xl font-bold text-white transition-colors
-                  ${confirmModal.action === "확정" ? "bg-green-600 hover:bg-green-700" : "bg-red-500 hover:bg-red-600"}`}
-              >
-                {confirmModal.action}
-              </button>
+                );
+              })}
             </div>
           </div>
         </div>
-      )}
+
+        {/* 상세 리스트 패널 */}
+        <div className="flex-1 flex flex-col gap-6">
+          <div className="bg-white p-8 rounded-[40px] shadow-xl border-t-8 border-blue-600">
+            <div className="flex justify-between items-center mb-8 border-b pb-6 text-gray-900">
+              <h3 className="text-4xl font-black">{format(selectedDate, "M월 d일 (EEEE)", { locale: ko })}</h3>
+              <div className="text-2xl font-bold text-blue-600 bg-blue-50 px-6 py-2 rounded-full">총 {selectedDayBookings.length}건</div>
+            </div>
+            <div className="space-y-6">
+              {selectedDayBookings.length === 0 ? (
+                <div className="py-40 text-center text-3xl font-bold text-gray-300 bg-gray-50 rounded-[40px] border-4 border-dashed border-gray-200">예약 내역이 없습니다.</div>
+              ) : (
+                selectedDayBookings.map((booking) => (
+                  <div key={booking.id} className={`p-8 rounded-[40px] border-4 transition-all ${booking.uiStatus === "대기" ? "border-orange-400 bg-orange-50/30" : booking.uiStatus === "확정" ? "border-green-400 bg-white shadow-md" : "border-gray-100 bg-gray-50 opacity-80"}`}>
+                    <div className="flex flex-col md:flex-row justify-between gap-8">
+                      <div className="flex gap-8 items-center">
+                        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center text-6xl shadow-inner border border-gray-100">
+                          {booking.petDisplayName.includes("묘") ? "🐱" : "🐶"}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-4 mb-2">
+                            <h4 className="text-4xl font-black text-gray-900">{booking.petDisplayName}</h4>
+                            <span className="text-2xl font-bold text-blue-600 bg-blue-50 px-4 py-1 rounded-xl border border-blue-100">{booking.userName} 고객님</span>
+                          </div>
+                          <p className="text-2xl font-bold text-gray-500 tracking-tight">🏢 {booking.roomName} | 📅 {booking.check_in} ~ {booking.check_out}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {booking.uiStatus === "대기" ? (
+                          <>
+                            <button onClick={() => updateStatus(booking.id, 'confirmed')} className="px-12 py-6 bg-blue-600 text-white text-2xl font-black rounded-[30px] hover:bg-blue-700 shadow-xl transition-all active:scale-95">승인하기</button>
+                            <button onClick={() => { if(confirm("정말 거절하시겠습니까?")) updateStatus(booking.id, 'cancelled') }} className="px-8 py-6 bg-white border-4 border-gray-200 text-gray-400 text-2xl font-black rounded-[30px] hover:bg-gray-100 transition-all active:scale-95">거절</button>
+                          </>
+                        ) : booking.uiStatus === "확정" ? (
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="px-10 py-5 rounded-[30px] text-2xl font-black bg-green-100 text-green-700 border-4 border-green-200 shadow-sm">✅ 승인완료</div>
+                            <button onClick={() => { if(confirm("입실 취소하시겠습니까?")) updateStatus(booking.id, 'cancelled') }} className="text-lg font-bold text-red-400 hover:text-red-600 underline px-4 transition-colors">입실 취소하기</button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-end gap-2">
+                            <div className="px-10 py-5 rounded-[30px] text-2xl font-black bg-gray-100 text-gray-500 border-4 border-gray-200">❌ 거절됨</div>
+                            <button onClick={() => { if(confirm("다시 대기로 되돌리시겠습니까?")) updateStatus(booking.id, 'pending') }} className="text-lg font-bold text-blue-400 hover:text-blue-600 underline px-4 transition-colors">대기로 복구</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

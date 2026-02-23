@@ -1,393 +1,549 @@
 "use client";
-import { useState, useEffect } from "react";
 
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// --- 1. 타입 정의 ---
+const SMALL_MAX_WEIGHT = 7;
 type RoomStatus = "입실중" | "퇴실예정" | "공실" | "청소중";
-type BookingStatus = "확정" | "대기" | "취소";
+type BookingStatusUi = "확정" | "대기" | "취소";
 
-const ROOMS = [
-  { id: 1, name: "스탠다드 A", type: "스탠다드", status: "입실중" as RoomStatus, petName: "초코", breed: "말티즈", owner: "김지영", checkIn: "02/20", checkOut: "02/23", notes: "낯선 사람에게 짖음", emoji: "🐩" },
-  { id: 2, name: "스탠다드 B", type: "스탠다드", status: "퇴실예정" as RoomStatus, petName: "두부", breed: "닥스훈트", owner: "정혜연", checkIn: "02/19", checkOut: "02/21", notes: "", emoji: "🐾" },
-  { id: 3, name: "디럭스 A",   type: "디럭스",   status: "공실" as RoomStatus,   petName: "", breed: "", owner: "", checkIn: "", checkOut: "", notes: "", emoji: "" },
-  { id: 4, name: "디럭스 B",   type: "디럭스",   status: "청소중" as RoomStatus, petName: "", breed: "", owner: "", checkIn: "", checkOut: "", notes: "", emoji: "" },
-  { id: 5, name: "스위트",     type: "프리미엄", status: "입실중" as RoomStatus, petName: "뭉치", breed: "골든 리트리버", owner: "이현우", checkIn: "02/18", checkOut: "02/25", notes: "", emoji: "🦮" },
-];
-
-const TODAY_CHECKIN = [
-  { id: 1, petName: "루비", breed: "비숑프리제", weight: "4.5kg", owner: "박수민", phone: "010-5555-1234", room: "스탠다드 A", time: "10:00", notes: "닭고기 알레르기", emoji: "🐩" },
-  { id: 2, petName: "코코", breed: "시츄",       weight: "6.1kg", owner: "한소희", phone: "010-9999-0000", room: "디럭스 B",   time: "14:00", notes: "",             emoji: "🐕" },
-  { id: 3, petName: "보리", breed: "포메라니안", weight: "2.8kg", owner: "최민준", phone: "010-7777-3333", room: "스탠다드 B", time: "16:30", notes: "분리불안 있음",  emoji: "🐾" },
-];
-
-const MONTH_BOOKINGS: { date: number; bookings: { petName: string; room: string; type: "checkin" | "checkout" | "stay"; status: BookingStatus }[] }[] = [
-  { date: 18, bookings: [{ petName: "뭉치", room: "스위트", type: "checkin", status: "확정" }] },
-  { date: 19, bookings: [{ petName: "두부", room: "스탠다드B", type: "checkin", status: "확정" }] },
-  { date: 20, bookings: [{ petName: "초코", room: "스탠다드A", type: "checkin", status: "확정" }] },
-  { date: 21, bookings: [{ petName: "루비", room: "스탠다드A", type: "checkin", status: "확정" }, { petName: "두부", room: "스탠다드B", type: "checkout", status: "확정" }] },
-  { date: 22, bookings: [{ petName: "해피", room: "디럭스A", type: "checkin", status: "대기" }] },
-  { date: 23, bookings: [{ petName: "초코", room: "스탠다드A", type: "checkout", status: "확정" }, { petName: "몽이", room: "스탠다드B", type: "checkin", status: "대기" }] },
-  { date: 24, bookings: [] },
-  { date: 25, bookings: [{ petName: "뭉치", room: "스위트", type: "checkout", status: "확정" }, { petName: "밤비", room: "디럭스B", type: "checkin", status: "확정" }] },
-  { date: 26, bookings: [{ petName: "토리", room: "스탠다드A", type: "checkin", status: "대기" }] },
-  { date: 27, bookings: [] },
-  { date: 28, bookings: [{ petName: "밤비", room: "디럭스B", type: "checkout", status: "확정" }] },
-];
-
-const ROOM_STATUS_STYLE: Record<RoomStatus, { bg: string; text: string; dot: string; label: string }> = {
-  입실중:   { bg: "bg-blue-50 border-blue-300",  text: "text-blue-700",  dot: "bg-blue-500",  label: "입실중"   },
-  퇴실예정: { bg: "bg-amber-50 border-amber-300", text: "text-amber-700", dot: "bg-amber-400", label: "퇴실예정" },
-  공실:     { bg: "bg-green-50 border-green-300", text: "text-green-700", dot: "bg-green-400", label: "공실"     },
-  청소중:   { bg: "bg-gray-50 border-gray-300",   text: "text-gray-500",  dot: "bg-gray-400",  label: "청소중"   },
+type RoomRow = {
+  id: string;
+  name: string;
+  price: number | null;
+  spec: string | null;
+  small_capacity: number | null;
+  large_capacity: number | null;
+  created_at: string | null;
 };
 
+type BookingRow = {
+  id: string;
+  user_id: string | null;
+  room_id: string | null;
+  check_in: string;
+  check_out: string;
+  status: string | null;
+  created_at: string | null;
+  profiles?: { name: string | null; phone: string | null } | null;
+  rooms?: { name: string | null } | null;
+};
+
+type RoomCard = {
+  id: string;
+  name: string;
+  type: string;
+  status: RoomStatus;
+  petName: string;
+  breed: string;
+  owner: string;
+  phone: string;
+  checkIn: string;
+  checkOut: string;
+  notes: string;
+  emoji: string;
+  smallCap: number;
+  mediumCap: number;
+  currentSmall: number;
+  currentMedium: number;
+};
+
+type MonthBookingCell = {
+  date: number;
+  bookings: {
+    id: string;
+    petName: string;
+    room: string;
+    type: "checkin" | "checkout" | "stay";
+    status: BookingStatusUi;
+    owner: string;
+    phone: string;
+    breed: string;
+    weight: string;
+    checkIn: string;
+    checkOut: string;
+    time: string;
+  }[];
+};
+
+const ROOM_STATUS_STYLE: Record<RoomStatus, { bg: string; text: string; dot: string; label: string }> = {
+  입실중: { bg: "bg-blue-50 border-blue-300", text: "text-blue-700", dot: "bg-blue-500", label: "입실중" },
+  퇴실예정: { bg: "bg-amber-50 border-amber-300", text: "text-amber-700", dot: "bg-amber-400", label: "퇴실예정" },
+  공실: { bg: "bg-green-50 border-green-300", text: "text-green-700", dot: "bg-green-400", label: "공실" },
+  청소중: { bg: "bg-gray-50 border-gray-300", text: "text-gray-500", dot: "bg-gray-400", label: "청소중" },
+};
+
+// --- 2. 유틸리티 함수 ---
+function ymd(d: Date) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function addDays(d: Date, days: number) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + days);
+  return x;
+}
+function monthStart(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function monthEnd(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0); }
+function daysInMonth(d: Date) { return monthEnd(d).getDate(); }
+
+function mapDbStatusToUi(s: string | null): BookingStatusUi {
+  const v = String(s ?? "").toLowerCase();
+  if (v === "confirmed" || v === "paid") return "확정";
+  if (v === "canceled" || v === "cancelled") return "취소";
+  return "대기";
+}
+
+function formatMMDD(dateStr: string) {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length < 3) return dateStr;
+  return `${parts[1]}/${parts[2]}`;
+}
+
+function safeTimeFromCreatedAt(createdAt: string | null) {
+  if (!createdAt) return "-";
+  const t = createdAt.split("T")[1] ?? "";
+  return t.slice(0, 5) || "-";
+}
+
+function pickEmojiByBreed(breed: string) {
+  const b = breed || "";
+  if (b.includes("리트리버") || b.includes("골든")) return "🦮";
+  if (b.includes("말티즈") || b.includes("비숑")) return "🐩";
+  if (b.includes("포메")) return "🦊";
+  if (b.includes("고양이") || b.includes("묘")) return "🐱";
+  return "🐾";
+}
+
+// --- 3. 메인 컴포넌트 ---
 export default function AdminDashboard() {
-  // ✅ Hydration 에러 수정: 날짜를 useEffect로 클라이언트에서만 렌더링
   const [todayStr, setTodayStr] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
+  const [month, setMonth] = useState<Date>(new Date());
+  const [monthBookings, setMonthBookings] = useState<MonthBookingCell[]>([]);
+  
+  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
+  const [expandedType, setExpandedType] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<number>(new Date().getDate());
+  const [checkinDone, setCheckinDone] = useState<string[]>([]);
+
   useEffect(() => {
-    setTodayStr(
-      new Date().toLocaleDateString("ko-KR", {
-        year: "numeric", month: "long", day: "numeric", weekday: "long",
-      })
-    );
+    setTodayStr(new Date().toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "long" }));
   }, []);
 
-  const [checkinDone, setCheckinDone] = useState<number[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState<number | null>(21);
+  const tomorrowYmd = useMemo(() => {
+    const d = new Date(month.getFullYear(), month.getMonth(), selectedDate);
+    return ymd(addDays(d, 1));
+  }, [month, selectedDate]);
 
-  const toggleCheckin = (id: number) =>
-    setCheckinDone((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  // A) 룸 카드 계산
+  const roomCards = useMemo(() => {
+    return rooms.map((room) => {
+      const dayCell = monthBookings.find((c) => c.date === selectedDate);
+      const roomBookings = dayCell?.bookings.filter(b => b.room === room.name) || [];
+      
+      let currentSmall = 0;
+      let currentMedium = 0;
 
-  const selectedRoomData = ROOMS.find((r) => r.id === selectedRoom);
-  const selectedDateBookings = MONTH_BOOKINGS.find((d) => d.date === selectedDate);
+      roomBookings.forEach(b => {
+        if (b.type === 'checkout') return; 
+        const wStr = b.weight.replace("kg", "").trim();
+        const weight = parseFloat(wStr) || 0;
+        if (weight <= SMALL_MAX_WEIGHT) currentSmall++;
+        else currentMedium++;
+      });
+
+      const confirmed = roomBookings.filter(b => b.status === "확정");
+      const pending = roomBookings.filter(b => b.status === "대기");
+
+      const targetBooking = confirmed[0] || pending[0] || null;
+
+      let status: RoomStatus = "공실";
+      if (targetBooking) {
+        if (targetBooking.type === "checkout") {
+          status = "청소중";
+        } else {
+          const isLeavingTomorrow = targetBooking.checkOut === tomorrowYmd;
+          status = isLeavingTomorrow ? "퇴실예정" : "입실중";
+        }
+      }
+
+      return {
+        id: room.id,
+        name: room.name,
+        type: room.spec ?? "객실",
+        status,
+        petName: targetBooking?.petName || "",
+        breed: targetBooking?.breed || "",
+        owner: targetBooking?.owner || "",
+        phone: targetBooking?.phone || "",
+        checkIn: targetBooking ? formatMMDD(targetBooking.checkIn) : "",
+        checkOut: targetBooking ? formatMMDD(targetBooking.checkOut) : "",
+        notes: targetBooking?.status === "대기" ? "승인 필요" : "",
+        emoji: targetBooking ? pickEmojiByBreed(targetBooking.breed) : "",
+        smallCap: room.small_capacity ?? 0,
+        mediumCap: room.large_capacity ?? 0,
+        currentSmall,
+        currentMedium,
+      };
+    });
+  }, [rooms, monthBookings, selectedDate, tomorrowYmd]);
+
+  const roomGroups = useMemo(() => {
+    const groups: Record<string, typeof roomCards> = {};
+    roomCards.forEach(r => {
+      const t = r.type || "기타";
+      if (!groups[t]) groups[t] = [];
+      groups[t].push(r);
+    });
+    return groups;
+  }, [roomCards]);
+
+  const todayCheckins = useMemo(() => {
+    const dayCell = monthBookings.find((c) => c.date === selectedDate);
+    return (dayCell?.bookings.filter(b => b.type === "checkin") || []).map(b => ({
+      id: b.id,
+      petName: b.petName,
+      breed: b.breed,
+      weight: b.weight,
+      owner: b.owner,
+      phone: b.phone,
+      room: b.room,
+      time: b.time,
+      notes: b.status === "대기" ? "승인 대기" : "",
+      emoji: pickEmojiByBreed(b.breed)
+    }));
+  }, [monthBookings, selectedDate]);
+
+  const stats = useMemo(() => ({
+    totalRooms: roomCards.length,
+    occupied: roomCards.filter(r => r.status === "입실중").length,
+    empty: roomCards.filter(r => r.status === "공실").length,
+    leaving: roomCards.filter(r => r.status === "퇴실예정").length,
+    todayCheckin: todayCheckins.length,
+    checkinDone: checkinDone.length,
+  }), [roomCards, todayCheckins, checkinDone]);
+
+  // --- 데이터 페칭 (핵심 수정 부분) ---
+  async function loadDashboard(targetMonth: Date) {
+    setLoading(true);
+    try {
+      // 1. 모든 룸 로드
+      const { data: rData } = await supabase.from("rooms").select("*").order("created_at", { ascending: true });
+      setRooms((rData ?? []) as RoomRow[]);
+
+      const start = ymd(monthStart(targetMonth));
+      const end = ymd(monthEnd(targetMonth));
+
+      // 2. 모든 사용자의 예약 로드 (관리자용 쿼리)
+      const { data: bData, error: bError } = await supabase
+        .from("bookings")
+        .select(`
+          id, user_id, room_id, check_in, check_out, status, created_at,
+          rooms ( name ),
+          profiles:user_id ( name, phone )
+        `)
+        .lte("check_in", end)
+        .gte("check_out", start);
+
+      if (bError) throw bError;
+
+      const bookings = (bData ?? []) as unknown as BookingRow[];
+      if (bookings.length === 0) {
+        setMonthBookings([]);
+        setLoading(false);
+        return;
+      }
+
+      const bookingIds = bookings.map(b => b.id);
+
+      // 3. 펫 정보 로드
+      const { data: pData } = await supabase
+        .from("booking_pets")
+        .select(`
+          booking_id, 
+          pets:pet_id ( name, breed, weight )
+        `)
+        .in("booking_id", bookingIds);
+      
+      const petMap = new Map();
+      (pData ?? []).forEach((row: any) => {
+        if(!petMap.has(row.booking_id)) petMap.set(row.booking_id, []);
+        if (row.pets) petMap.get(row.booking_id).push(row.pets);
+      });
+
+      // 4. 날짜별 셀 데이터 생성
+      const dim = daysInMonth(targetMonth);
+      const cells: MonthBookingCell[] = [];
+      for (let d = 1; d <= dim; d++) {
+        const curYmd = ymd(new Date(targetMonth.getFullYear(), targetMonth.getMonth(), d));
+        
+        const dayEvents = bookings.filter(b => 
+          b.check_in <= curYmd && 
+          b.check_out >= curYmd && 
+          mapDbStatusToUi(b.status) !== "취소"
+        ).flatMap(b => {
+          const pets = petMap.get(b.id) || [];
+          const displayPets = pets.length > 0 ? pets : [{ name: "펫", breed: "", weight: "" }];
+
+          return displayPets.map((pet: any) => ({
+            id: b.id,
+            petName: pet.name || "펫",
+            room: b.rooms?.name ?? "객실",
+            type: (b.check_in === curYmd ? "checkin" : b.check_out === curYmd ? "checkout" : "stay") as any,
+            status: mapDbStatusToUi(b.status),
+            owner: b.profiles?.name ?? "정보없음",
+            phone: b.profiles?.phone ?? "-",
+            breed: pet.breed ?? "",
+            weight: pet.weight ? `${pet.weight}kg` : "",
+            checkIn: b.check_in,
+            checkOut: b.check_out,
+            time: safeTimeFromCreatedAt(b.created_at)
+          }));
+        });
+        cells.push({ date: d, bookings: dayEvents });
+      }
+      setMonthBookings(cells);
+    } catch (e) { 
+      console.error("로드 오류:", e); 
+    } finally { 
+      setLoading(false); 
+    }
+  }
+
+  useEffect(() => { loadDashboard(month); }, [month]);
+
+  const toggleCheckin = (id: string) => setCheckinDone(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-
-      {/* ── 상단 헤더 ── */}
+    <div className="min-h-screen bg-gray-100 font-sans">
+      {/* ── 헤더 ── */}
       <div className="bg-white border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center gap-4">
-          <span className="bg-red-100 text-red-600 text-sm font-bold px-3 py-1.5 rounded-full">관리자</span>
+          <span className="bg-red-500 text-white text-sm font-black px-4 py-1.5 rounded-full shadow-sm">ADMIN</span>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">🐾 애견 호텔 관리 대시보드</h1>
-            {/* ✅ 클라이언트 전용 렌더링 → Hydration 에러 해결 */}
-            {todayStr && <p className="text-sm text-gray-500 mt-0.5">{todayStr}</p>}
+            <h1 className="text-xl font-black text-gray-900 tracking-tight">🐾 {month.getMonth()+1}월 {selectedDate}일 호텔 대시보드</h1>
+            <p className="text-xs font-bold text-gray-400">{todayStr}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
-          <span className="text-sm text-gray-500 font-medium">실시간 연결됨</span>
+        <div className="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-2xl border">
+          <span className={`w-3 h-3 rounded-full ${loading ? "bg-gray-300" : "bg-green-500 animate-pulse"}`}></span>
+          <span className="text-xs text-gray-600 font-black">{loading ? "데이터 갱신 중..." : "실시간 서버 연결됨"}</span>
         </div>
       </div>
 
-      {/* ── 상단 통계 바 ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex gap-3 overflow-x-auto">
+      {/* ── 통계 바 ── */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex gap-4 overflow-x-auto no-scrollbar">
         {[
-          { label: "전체 룸",    value: ROOMS.length,                                       color: "text-gray-800",   bg: "bg-gray-100"   },
-          { label: "입실 중",    value: ROOMS.filter(r => r.status === "입실중").length,     color: "text-blue-700",   bg: "bg-blue-100"   },
-          { label: "공실",       value: ROOMS.filter(r => r.status === "공실").length,       color: "text-green-700",  bg: "bg-green-100"  },
-          { label: "퇴실 예정",  value: ROOMS.filter(r => r.status === "퇴실예정").length,   color: "text-amber-700",  bg: "bg-amber-100"  },
-          { label: "오늘 입실",  value: TODAY_CHECKIN.length,                               color: "text-indigo-700", bg: "bg-indigo-100" },
-          { label: "체크인 완료",value: checkinDone.length,                                 color: "text-teal-700",   bg: "bg-teal-100"   },
+          { label: "전체 객실", value: stats.totalRooms, color: "text-gray-900", bg: "bg-gray-100" },
+          { label: "현재 입실", value: stats.occupied, color: "text-blue-600", bg: "bg-blue-50 border-blue-100" },
+          { label: "잔여 공실", value: stats.empty, color: "text-green-600", bg: "bg-green-50 border-green-100" },
+          { label: "퇴실 예정", value: stats.leaving, color: "text-amber-600", bg: "bg-amber-50 border-amber-100" },
+          { label: "오늘 체크인", value: stats.todayCheckin, color: "text-indigo-600", bg: "bg-indigo-50 border-indigo-100" },
         ].map((s) => (
-          <div key={s.label} className={`flex items-center gap-2 px-4 py-2 rounded-xl shrink-0 ${s.bg}`}>
-            <span className="text-sm font-medium text-gray-500">{s.label}</span>
-            <span className={`text-2xl font-bold ${s.color}`}>{s.value}</span>
+          <div key={s.label} className={`flex flex-col gap-1 px-6 py-3 rounded-2xl shrink-0 border-2 min-w-[140px] ${s.bg}`}>
+            <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">{s.label}</span>
+            <span className={`text-3xl font-black ${s.color}`}>{s.value}</span>
           </div>
         ))}
       </div>
 
-      {/* ── 3패널 ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[calc(100vh-130px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[calc(100vh-180px)]">
+        
+        {/* 1. 룸 현황 패널 */}
+        <div className="bg-white border-r-2 border-gray-200 p-6 overflow-y-auto custom-scrollbar">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">🏠 객실 배정 현황</h2>
+            <span className="px-3 py-1 bg-gray-900 text-white text-[10px] font-black rounded-lg uppercase tracking-tighter">Real-time</span>
+          </div>
 
-        {/* ══ 왼쪽: 룸 현황 ══ */}
-        <div className="bg-white border-r-2 border-gray-200 p-5 overflow-y-auto">
-          <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">
-            🏠 룸 현황
-            <span className="ml-auto text-sm font-normal text-gray-400">{ROOMS.length}개 룸</span>
-          </h2>
+          <div className="space-y-5">
+            {Object.entries(roomGroups).map(([type, groupRooms]) => {
+              const isExpanded = expandedType === type;
+              const currentSmallTotal = groupRooms.reduce((sum, r) => sum + r.currentSmall, 0);
+              const currentMediumTotal = groupRooms.reduce((sum, r) => sum + r.currentMedium, 0);
+              const totalSmallCap = groupRooms.reduce((sum, r) => sum + r.smallCap, 0);
+              const totalMediumCap = groupRooms.reduce((sum, r) => sum + r.mediumCap, 0);
+
+              return (
+                <div key={type} className="bg-white border-2 border-gray-200 rounded-[32px] overflow-hidden transition-all shadow-sm">
+                  <div 
+                    onClick={() => setExpandedType(isExpanded ? null : type)}
+                    className={`p-5 cursor-pointer flex justify-between items-center transition-all ${isExpanded ? "bg-gray-50 border-b-2" : "hover:bg-gray-50"}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-gray-100">{isExpanded ? "📂" : "📁"}</div>
+                      <div>
+                        <h3 className="font-black text-gray-900 text-lg">{type}</h3>
+                        <p className="text-xs font-bold text-gray-400">{groupRooms.length} Rooms Available</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[9px] font-black text-gray-400">SMALL</span>
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-black ${currentSmallTotal > 0 ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                          {currentSmallTotal}/{totalSmallCap}
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="text-[9px] font-black text-gray-400">MEDIUM</span>
+                        <span className={`px-3 py-1 rounded-full text-[11px] font-black ${currentMediumTotal > 0 ? "bg-amber-500 text-white" : "bg-gray-100 text-gray-400"}`}>
+                          {currentMediumTotal}/{totalMediumCap}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="p-4 bg-gray-50/50 space-y-4">
+                      {groupRooms.map((room) => {
+                        const s = ROOM_STATUS_STYLE[room.status];
+                        const isSelected = selectedRoom === room.id;
+                        return (
+                          <div key={room.id} onClick={(e) => { e.stopPropagation(); setSelectedRoom(isSelected ? null : room.id); }} className={`bg-white border-2 rounded-3xl p-5 cursor-pointer transition-all ${isSelected ? "border-blue-500 shadow-xl scale-[1.02]" : "border-gray-100 hover:border-gray-300 shadow-sm"}`}>
+                            <div className="flex justify-between items-center mb-4">
+                              <span className="font-black text-gray-900 text-xl">{room.name}</span>
+                              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border shadow-sm">
+                                <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`}></span>
+                                <span className={`text-[11px] font-black ${s.text}`}>{s.label}</span>
+                              </div>
+                            </div>
+
+                            {room.petName ? (
+                              <div className="flex gap-4 items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                <span className="text-5xl drop-shadow-sm">{room.emoji}</span>
+                                <div className="flex-1">
+                                  <p className="text-lg font-black text-gray-900">{room.petName}</p>
+                                  <p className="text-xs font-bold text-gray-500">{room.breed} · {room.owner} 보호자님</p>
+                                  <div className="mt-2 flex gap-2">
+                                    <span className="text-[10px] font-black px-2 py-0.5 bg-blue-100 text-blue-700 rounded-md">IN: {room.checkIn}</span>
+                                    <span className="text-[10px] font-black px-2 py-0.5 bg-amber-100 text-amber-700 rounded-md">OUT: {room.checkOut}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="py-6 text-center border-2 border-dashed border-gray-200 rounded-2xl">
+                                <p className="text-xs font-black text-gray-300 italic">VACANT ROOM</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 2. 입실 현황 패널 */}
+        <div className="bg-gray-50 p-6 border-r-2 border-gray-200 overflow-y-auto custom-scrollbar">
+          <div className="mb-6">
+            <h2 className="text-xl font-black text-gray-900 mb-1">🛫 체크인 리스트</h2>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Today's Check-ins</p>
+          </div>
+          
+          <div className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-200 mb-6">
+            <div className="flex justify-between items-end mb-3">
+                <span className="text-xs font-black text-gray-500">진행률</span>
+                <span className="text-2xl font-black text-blue-600">{checkinDone.length}<span className="text-sm text-gray-300 ml-1">/ {todayCheckins.length}</span></span>
+            </div>
+            <div className="h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
+                <div className="h-full bg-blue-600 transition-all duration-500 ease-out shadow-lg" style={{ width: `${(checkinDone.length/Math.max(1,todayCheckins.length))*100}%` }}></div>
+            </div>
+          </div>
 
           <div className="space-y-4">
-            {ROOMS.map((room) => {
-              const s = ROOM_STATUS_STYLE[room.status];
-              const isSelected = selectedRoom === room.id;
-              return (
-                <div
-                  key={room.id}
-                  onClick={() => setSelectedRoom(isSelected ? null : room.id)}
-                  className={`border-2 rounded-2xl p-4 cursor-pointer transition-all
-                    ${s.bg} ${isSelected ? "ring-2 ring-blue-400 ring-offset-2 shadow-md" : "hover:shadow-md"}`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <span className="font-bold text-gray-900 text-base">{room.name}</span>
-                      <span className="ml-2 text-sm text-gray-400 bg-white px-2 py-0.5 rounded-full border">{room.type}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`w-3 h-3 rounded-full ${s.dot}`}></span>
-                      <span className={`text-sm font-bold ${s.text}`}>{s.label}</span>
-                    </div>
-                  </div>
-
-                  {(room.status === "입실중" || room.status === "퇴실예정") ? (
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-3xl">{room.emoji}</span>
-                        <div>
-                          <p className="text-base font-bold text-gray-900">{room.petName}</p>
-                          <p className="text-sm text-gray-500">{room.breed}</p>
-                          <p className="text-sm text-gray-500">보호자: <span className="font-semibold">{room.owner}</span></p>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border">
-                        <span className="text-sm text-gray-500">입실 <span className="font-bold text-gray-800">{room.checkIn}</span></span>
-                        <span className="text-sm text-amber-600 font-bold">퇴실 {room.checkOut}</span>
-                      </div>
-                      {room.notes && (
-                        <p className="mt-2 text-sm text-amber-700 bg-amber-100 px-3 py-2 rounded-xl font-medium">⚠️ {room.notes}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-base text-gray-500 font-medium">
-                      {room.status === "공실" ? "✅ 예약 가능한 방입니다" : "🧹 청소가 진행 중입니다"}
-                    </p>
-                  )}
+            {todayCheckins.length === 0 ? (
+                <div className="text-center py-24 bg-white rounded-[40px] border-4 border-dashed border-gray-200">
+                    <p className="text-5xl mb-4 grayscale opacity-50">🦴</p>
+                    <p className="text-sm font-black text-gray-400">오늘 입실 일정이 없습니다.</p>
                 </div>
-              );
-            })}
-          </div>
-
-          {selectedRoomData && (
-            <div className="mt-5 bg-blue-50 border-2 border-blue-200 rounded-2xl p-4">
-              <div className="flex justify-between items-center mb-3">
-                <p className="text-base font-bold text-blue-800">📋 {selectedRoomData.name} 상세</p>
-                <button onClick={() => setSelectedRoom(null)} className="text-blue-400 hover:text-blue-700 text-lg font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-blue-100">✕</button>
-              </div>
-              {selectedRoomData.petName ? (
-                <div className="space-y-1.5 text-sm text-blue-700">
-                  <p><span className="font-bold">반려동물:</span> {selectedRoomData.petName} ({selectedRoomData.breed})</p>
-                  <p><span className="font-bold">보호자:</span> {selectedRoomData.owner}</p>
-                  <p><span className="font-bold">입실:</span> {selectedRoomData.checkIn} → <span className="font-bold text-amber-600">{selectedRoomData.checkOut} 퇴실</span></p>
-                  {selectedRoomData.notes && (
-                    <p className="text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">⚠️ {selectedRoomData.notes}</p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-sm text-blue-600">현재 투숙 중인 반려동물이 없습니다.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* ══ 중앙: 오늘 입실 현황 ══ */}
-        <div className="bg-gray-50 p-5 border-r-2 border-gray-200 overflow-y-auto">
-          <h2 className="text-lg font-bold text-gray-800 mb-1 flex items-center gap-2">🐾 오늘 입실 현황</h2>
-          <p className="text-sm text-gray-500 mb-5">체크인이 완료되면 카드를 눌러 체크하세요.</p>
-
-          {/* 진행률 */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">체크인 진행률</span>
-              <span className="text-base font-bold text-blue-600">{checkinDone.length} / {TODAY_CHECKIN.length} 완료</span>
-            </div>
-            <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                style={{ width: `${(checkinDone.length / TODAY_CHECKIN.length) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* 입실 카드 */}
-          <div className="space-y-4 mb-8">
-            {TODAY_CHECKIN.map((item) => {
+            ) : todayCheckins.map((item, idx) => {
               const isDone = checkinDone.includes(item.id);
               return (
-                <div
-                  key={item.id}
-                  onClick={() => toggleCheckin(item.id)}
-                  className={`bg-white rounded-2xl p-5 border-2 cursor-pointer transition-all
-                    ${isDone ? "border-green-300 bg-green-50 opacity-70" : "border-gray-200 hover:border-blue-400 hover:shadow-md"}`}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* 체크 버튼 */}
-                    <div className={`mt-1 w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
-                      ${isDone ? "bg-green-500 border-green-500 text-white" : "border-gray-300 bg-white"}`}>
-                      {isDone && <span className="text-base font-bold">✓</span>}
+                <div key={`${item.id}-${idx}`} onClick={() => toggleCheckin(item.id)} className={`group bg-white p-5 rounded-[32px] border-2 cursor-pointer transition-all ${isDone ? "border-green-200 opacity-60 grayscale-[0.5]" : "hover:border-blue-400 hover:shadow-xl hover:-translate-y-1"}`}>
+                  <div className="flex gap-5 items-center">
+                    <div className={`w-10 h-10 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all ${isDone ? "bg-green-500 border-green-500 text-white" : "bg-gray-50 border-gray-200 text-gray-300"}`}>
+                        {isDone ? <span className="text-xl font-black">✓</span> : <span className="text-xs font-black">{idx + 1}</span>}
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">{item.emoji}</span>
-                          <div>
-                            <p className={`text-lg font-bold text-gray-900 ${isDone ? "line-through text-gray-400" : ""}`}>{item.petName}</p>
-                            <p className="text-sm text-gray-500">{item.breed} · {item.weight}</p>
-                          </div>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className={`text-lg font-black tracking-tight ${isDone ? "line-through text-gray-400" : "text-gray-900"}`}>{item.petName} <span className="text-xs text-gray-400 ml-1">({item.breed})</span></p>
+                                <p className="text-xs font-bold text-gray-400">{item.owner} · {item.phone}</p>
+                            </div>
+                            <span className="text-blue-600 font-black bg-blue-50 px-3 py-1 rounded-xl text-[10px] border border-blue-100 shadow-sm uppercase">{item.room}</span>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xl font-bold text-blue-600">{item.time}</p>
-                          <span className="text-sm bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-medium">{item.room}</span>
-                        </div>
-                      </div>
-                      <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-bold text-gray-700">{item.owner} 보호자님</p>
-                          <p className="text-sm text-gray-500">{item.phone}</p>
-                        </div>
-                        {item.notes && (
-                          <span className="text-sm text-amber-700 bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-xl font-medium shrink-0">
-                            ⚠️ {item.notes}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   </div>
                 </div>
               );
             })}
           </div>
-
-          {/* 오늘 퇴실 */}
-          <div>
-            <h3 className="text-base font-bold text-gray-700 mb-3 flex items-center gap-2">
-              <span className="w-3 h-3 bg-amber-400 rounded-full"></span> 오늘 퇴실 예정
-            </h3>
-            <div className="space-y-3">
-              {ROOMS.filter(r => r.status === "퇴실예정").map((room) => (
-                <div key={room.id} className="bg-white border-2 border-amber-200 rounded-2xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{room.emoji}</span>
-                    <div>
-                      <p className="text-base font-bold text-gray-900">{room.petName}</p>
-                      <p className="text-sm text-gray-500">{room.owner} 보호자님 · {room.name}</p>
-                    </div>
-                  </div>
-                  <span className="text-base font-bold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-200">
-                    {room.checkOut} 퇴실
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
-        {/* ══ 오른쪽: 월간 캘린더 ══ */}
-        <div className="bg-white p-5 overflow-y-auto">
-          <h2 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-2">📅 2월 예약 현황</h2>
-
-          {/* 캘린더 */}
-          <div className="mb-5 bg-gray-50 rounded-2xl p-4 border border-gray-200">
-            <div className="grid grid-cols-7 mb-2">
-              {["일","월","화","수","목","금","토"].map((d) => (
-                <div key={d} className="text-center text-sm text-gray-500 py-1 font-bold">{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1.5">
-              {Array.from({ length: 6 }).map((_, i) => <div key={`e-${i}`} />)}
-              {Array.from({ length: 28 }).map((_, i) => {
-                const day = i + 1;
-                const entry = MONTH_BOOKINGS.find(b => b.date === day && b.bookings.length > 0);
-                const isToday = day === 21;
-                const isSelected = selectedDate === day;
-                const hasCheckin  = entry?.bookings.some(b => b.type === "checkin");
-                const hasCheckout = entry?.bookings.some(b => b.type === "checkout");
-                const hasPending  = entry?.bookings.some(b => b.status === "대기");
-
-                return (
-                  <button
-                    key={day}
-                    onClick={() => setSelectedDate(isSelected ? null : day)}
-                    className={`relative aspect-square rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all
-                      ${isSelected ? "bg-blue-600 text-white shadow-md scale-105"
-                        : isToday  ? "bg-blue-100 text-blue-700 ring-2 ring-blue-400"
-                        : entry    ? "bg-white hover:bg-blue-50 text-gray-800 border border-gray-200"
-                        :            "text-gray-400 hover:bg-gray-100"}`}
-                  >
-                    {day}
-                    {entry && !isSelected && (
-                      <div className="flex gap-0.5 mt-0.5">
-                        {hasCheckin  && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>}
-                        {hasCheckout && <span className="w-1.5 h-1.5 bg-amber-400 rounded-full"></span>}
-                        {hasPending  && <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>}
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+        {/* 3. 캘린더 패널 */}
+        <div className="bg-white p-6 overflow-y-auto custom-scrollbar">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tighter">📅 Monthly Schedule</h2>
+            <div className="flex gap-2 bg-gray-100 p-1.5 rounded-2xl">
+              <button onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-xl transition-all font-black text-gray-600">◀</button>
+              <button onClick={() => setMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))} className="w-8 h-8 flex items-center justify-center hover:bg-white rounded-xl transition-all font-black text-gray-600">▶</button>
             </div>
           </div>
 
-          {/* 범례 */}
-          <div className="flex gap-4 mb-5 flex-wrap">
-            {[["bg-blue-500","입실"],["bg-amber-400","퇴실"],["bg-yellow-400","승인대기"]].map(([color,label]) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className={`w-3 h-3 ${color} rounded-full`}></span>
-                <span className="text-sm text-gray-600 font-medium">{label}</span>
+          <div className="grid grid-cols-7 gap-2 mb-10">
+            {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map(d => <div key={d} className="text-center text-[9px] text-gray-300 font-black mb-2 tracking-widest">{d}</div>)}
+            {Array.from({ length: new Date(month.getFullYear(), month.getMonth(), 1).getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
+            {Array.from({ length: daysInMonth(month) }).map((_, i) => {
+              const d = i + 1;
+              const cell = monthBookings.find(c => c.date === d);
+              const hasCheckin = cell?.bookings.some(b => b.type === "checkin");
+              const hasCheckout = cell?.bookings.some(b => b.type === "checkout");
+              const isSelected = selectedDate === d;
+              return (
+                <button key={d} onClick={() => setSelectedDate(d)} className={`aspect-square rounded-2xl text-[13px] font-black flex flex-col items-center justify-center transition-all relative ${isSelected ? "bg-gray-900 text-white shadow-2xl scale-110 z-10" : "hover:bg-gray-50 text-gray-800 border border-gray-50"}`}>
+                  {d}
+                  <div className="flex gap-1 mt-1">
+                    {hasCheckin && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-sm"></span>}
+                    {hasCheckout && <span className="w-1.5 h-1.5 bg-amber-500 rounded-full shadow-sm"></span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="space-y-4 border-t-2 border-gray-100 pt-8">
+            <h3 className="font-black text-gray-900 text-sm mb-4">📋 {selectedDate}일 타임라인</h3>
+            {monthBookings.find(c => c.date === selectedDate)?.bookings.map((b, idx) => (
+              <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border-2 border-white shadow-sm text-xs">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shadow-sm border border-gray-100">{pickEmojiByBreed(b.breed)}</div>
+                    <div>
+                        <p className="font-black text-gray-900">{b.petName} <span className="text-[10px] text-gray-400 font-bold ml-1">@{b.room}</span></p>
+                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">{b.owner} Guardian</p>
+                    </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full font-black text-[10px] shadow-sm ${b.type === 'checkin' ? 'bg-blue-600 text-white' : b.type === 'checkout' ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                    {b.type === 'checkin' ? '입실' : b.type === 'checkout' ? '퇴실' : '숙박'}
+                </span>
               </div>
             ))}
           </div>
-
-          {/* 선택 날짜 상세 */}
-          {selectedDate && (
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-700 mb-3">📋 2월 {selectedDate}일 예약 내용</h3>
-              {selectedDateBookings && selectedDateBookings.bookings.length > 0 ? (
-                <div className="space-y-3">
-                  {selectedDateBookings.bookings.map((b, i) => (
-                    <div key={i} className={`rounded-2xl p-4 border-2
-                      ${b.type === "checkin" ? "bg-blue-50 border-blue-200"
-                        : b.type === "checkout" ? "bg-amber-50 border-amber-200"
-                        : "bg-gray-50 border-gray-200"}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-base font-bold text-gray-900">{b.petName}</span>
-                        <span className={`text-sm font-bold px-2.5 py-1 rounded-full
-                          ${b.status === "확정" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"}`}>
-                          {b.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">{b.room}</span>
-                        <span className={`text-sm font-bold ${b.type === "checkin" ? "text-blue-600" : "text-amber-600"}`}>
-                          {b.type === "checkin" ? "▶ 입실" : "◀ 퇴실"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 bg-gray-50 rounded-2xl border border-gray-200">
-                  <p className="text-3xl mb-2">📭</p>
-                  <p className="text-base text-gray-500 font-medium">이 날짜에 예약이 없습니다</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 이달 요약 */}
-          <div className="pt-4 border-t-2 border-gray-100">
-            <h3 className="text-sm font-bold text-gray-500 mb-3">이달 전체 요약</h3>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-blue-50 rounded-2xl p-4 text-center border border-blue-200">
-                <p className="text-3xl font-bold text-blue-600">
-                  {MONTH_BOOKINGS.reduce((a, d) => a + d.bookings.filter(b => b.type === "checkin").length, 0)}
-                </p>
-                <p className="text-sm text-blue-600 font-medium mt-1">총 입실 건수</p>
-              </div>
-              <div className="bg-yellow-50 rounded-2xl p-4 text-center border border-yellow-200">
-                <p className="text-3xl font-bold text-yellow-600">
-                  {MONTH_BOOKINGS.reduce((a, d) => a + d.bookings.filter(b => b.status === "대기").length, 0)}
-                </p>
-                <p className="text-sm text-yellow-600 font-medium mt-1">승인 대기</p>
-              </div>
-            </div>
-            <a
-              href="/Hotel/Admin/Bookings"
-              className="w-full block text-center bg-gray-900 text-white py-4 rounded-2xl text-base font-bold hover:bg-gray-800 transition-colors"
-            >
-              📋 예약 승인 관리하러 가기
-            </a>
-          </div>
         </div>
-
       </div>
     </div>
   );

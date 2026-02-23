@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -7,14 +8,17 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+type PetSize = "small" | "medium"; // ✅ DB에 저장할 값
+
 type PetRow = {
-  id: string; // uuid
-  owner_id: string; // uuid
-  name: string; // not null
-  type: string; // not null
+  id: string;
+  owner_id: string;
+  name: string;
+  type: string;
   breed: string | null;
-  weight: number; // not null
-  is_neutered: boolean | null; // nullable but default false
+  weight: number;
+  size: PetSize | null; // ✅ 추가
+  is_neutered: boolean | null;
   notes: string | null;
   photo_url: string | null;
   created_at: string | null;
@@ -27,7 +31,8 @@ type PetForm = {
   weight: string;
   neutered: boolean;
   notes: string;
-  imageUrl: string; // photo_url
+  imageUrl: string;
+  size: PetSize; // ✅ 추가(선택형)
 };
 
 const EMPTY_FORM: PetForm = {
@@ -38,7 +43,29 @@ const EMPTY_FORM: PetForm = {
   neutered: false,
   notes: "",
   imageUrl: "",
+  size: "small",
 };
+
+// ✅ 기준
+const SMALL_MAX = 5;
+const MEDIUM_MAX = 15;
+const HARD_LIMIT = 15;
+
+function sizeLabel(size: PetSize) {
+  return size === "small" ? "소형견(≤5kg)" : "중형견(>5kg ~ ≤15kg)";
+}
+
+function isSizeWeightMatch(size: PetSize, weight: number) {
+  if (!Number.isFinite(weight) || weight <= 0) return false;
+  if (weight > HARD_LIMIT) return false;
+
+  if (size === "small") return weight <= SMALL_MAX;
+  return weight > SMALL_MAX && weight <= MEDIUM_MAX;
+}
+
+function inferSizeByWeight(weight: number): PetSize {
+  return weight <= SMALL_MAX ? "small" : "medium";
+}
 
 export default function Pets() {
   const [pets, setPets] = useState<PetRow[]>([]);
@@ -59,6 +86,35 @@ export default function Pets() {
     };
   }, [previewUrl]);
 
+  // ✅ weight 숫자화 + 유효성
+  const weightNum = useMemo(() => {
+    const n = Number(form.weight);
+    if (!Number.isFinite(n)) return NaN;
+    return n;
+  }, [form.weight]);
+
+  const isWeightValidNumber = Number.isFinite(weightNum) && weightNum > 0;
+  const isOverLimit = isWeightValidNumber && weightNum > HARD_LIMIT;
+
+  // ✅ 현재 선택(size)과 몸무게가 규칙에 맞는지
+  const isMatch = useMemo(() => {
+    if (!isWeightValidNumber) return false;
+    return isSizeWeightMatch(form.size, weightNum);
+  }, [form.size, isWeightValidNumber, weightNum]);
+
+  const hint = useMemo(() => {
+    if (!form.weight) return "몸무게를 입력하고 소형/중형을 선택하세요.";
+    if (!isWeightValidNumber) return "몸무게는 0보다 큰 숫자여야 합니다.";
+    if (isOverLimit) return "15kg 초과는 등록할 수 없습니다.";
+
+    if (!isMatch) {
+      if (form.size === "small") return "소형은 5kg 이하여야 합니다.";
+      return "중형은 5kg 초과 ~ 15kg 이하여야 합니다.";
+    }
+
+    return `선택 분류: ${sizeLabel(form.size)} ✅`;
+  }, [form.size, form.weight, isMatch, isOverLimit, isWeightValidNumber]);
+
   async function fetchPets() {
     setLoading(true);
 
@@ -71,7 +127,8 @@ export default function Pets() {
 
     const { data, error } = await supabase
       .from("pets")
-      .select("id, owner_id, name, type, breed, weight, is_neutered, notes, photo_url, created_at")
+      .select("id, owner_id, name, type, breed, weight, size, is_neutered, notes, photo_url, created_at")
+      .eq("owner_id", auth.user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -114,9 +171,16 @@ export default function Pets() {
       return;
     }
 
-    const weightNum = Number(form.weight);
-    if (Number.isNaN(weightNum) || weightNum <= 0) {
-      alert("몸무게를 올바르게 입력하세요.");
+    if (!isWeightValidNumber) {
+      alert("몸무게를 올바르게 입력하세요. (0보다 큰 숫자)");
+      return;
+    }
+    if (weightNum > HARD_LIMIT) {
+      alert("15kg 초과 반려동물은 현재 호텔 규정상 등록할 수 없습니다.");
+      return;
+    }
+    if (!isSizeWeightMatch(form.size, weightNum)) {
+      alert(form.size === "small" ? "소형은 5kg 이하여야 합니다." : "중형은 5kg 초과 ~ 15kg 이하여야 합니다.");
       return;
     }
 
@@ -125,7 +189,6 @@ export default function Pets() {
       if (editId) {
         let photoUrl = form.imageUrl || null;
 
-        // 새 파일 선택했으면 업로드하고 URL 갱신
         if (file) {
           photoUrl = await uploadPhoto(user.id, editId, file);
         }
@@ -137,6 +200,7 @@ export default function Pets() {
             type: form.type,
             breed: form.breed || null,
             weight: weightNum,
+            size: form.size, // ✅ DB 저장
             is_neutered: form.neutered,
             notes: form.notes || null,
             photo_url: photoUrl,
@@ -154,7 +218,7 @@ export default function Pets() {
         return;
       }
 
-      // ✅ 신규 등록 (먼저 DB에 row 만들고 id(uuid) 받기)
+      // ✅ 신규 등록
       const { data: inserted, error: insertError } = await supabase
         .from("pets")
         .insert({
@@ -163,6 +227,7 @@ export default function Pets() {
           type: form.type,
           breed: form.breed || null,
           weight: weightNum,
+          size: form.size, // ✅ DB 저장
           is_neutered: form.neutered,
           notes: form.notes || null,
           photo_url: null,
@@ -172,15 +237,9 @@ export default function Pets() {
 
       if (insertError) throw insertError;
 
-      // ✅ 사진 있으면 업로드 후 photo_url 업데이트
       if (file) {
         const url = await uploadPhoto(user.id, inserted.id, file);
-
-        const { error: photoErr } = await supabase
-          .from("pets")
-          .update({ photo_url: url })
-          .eq("id", inserted.id);
-
+        const { error: photoErr } = await supabase.from("pets").update({ photo_url: url }).eq("id", inserted.id);
         if (photoErr) throw photoErr;
       }
 
@@ -197,6 +256,9 @@ export default function Pets() {
   }
 
   function handleEdit(pet: PetRow) {
+    const safeSize: PetSize =
+      pet.size ?? inferSizeByWeight(Number(pet.weight ?? 0)); // ✅ 기존 데이터 size가 없으면 weight로 보정
+
     setForm({
       name: pet.name ?? "",
       type: pet.type === "cat" ? "cat" : "dog",
@@ -205,9 +267,10 @@ export default function Pets() {
       neutered: Boolean(pet.is_neutered),
       notes: pet.notes ?? "",
       imageUrl: pet.photo_url ?? "",
+      size: safeSize,
     });
     setEditId(pet.id);
-    setFile(null); // 새 파일은 다시 선택
+    setFile(null);
     setShowForm(true);
   }
 
@@ -222,6 +285,14 @@ export default function Pets() {
     await fetchPets();
   }
 
+  const canSubmit =
+    Boolean(form.name) &&
+    Boolean(form.type) &&
+    Boolean(form.weight) &&
+    isWeightValidNumber &&
+    !isOverLimit &&
+    isMatch;
+
   return (
     <div className="max-w-3xl mx-auto px-6 py-12">
       {/* 헤더 */}
@@ -230,10 +301,9 @@ export default function Pets() {
           🐾 마이펫 관리
         </span>
         <h2 className="text-3xl font-bold text-gray-900">우리 아이 정보 관리</h2>
-        <p className="text-gray-500 mt-2">한 번 등록하면 예약이 10초 만에 끝나요!</p>
+        <p className="text-gray-500 mt-2">소형/중형은 DB에 저장됩니다.</p>
       </div>
 
-      {/* 로딩 */}
       {loading && <div className="text-gray-400 text-sm mb-6">불러오는 중...</div>}
 
       {/* 리스트 */}
@@ -250,11 +320,16 @@ export default function Pets() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <span className="font-bold text-lg text-gray-900">{pet.name}</span>
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                     {pet.type === "cat" ? "고양이" : "강아지"}
                   </span>
+                  {pet.size && (
+                    <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                      {pet.size === "small" ? "소형" : "중형"}
+                    </span>
+                  )}
                   {pet.breed && (
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{pet.breed}</span>
                   )}
@@ -324,9 +399,67 @@ export default function Pets() {
                   className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 bg-white"
                 >
                   <option value="dog">강아지</option>
-                  {/* <option value="cat">고양이</option> */}
                 </select>
               </div>
+            </div>
+
+            {/* ✅ 소형/중형 선택 */}
+            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+              <div className="text-sm font-semibold text-gray-700 mb-2">🐶 크기 선택 (DB 저장)</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, size: "small" }))}
+                  className={`p-3 rounded-xl border text-sm font-semibold transition-colors ${
+                    form.size === "small"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-200 bg-white text-gray-700"
+                  }`}
+                >
+                  {sizeLabel("small")}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, size: "medium" }))}
+                  className={`p-3 rounded-xl border text-sm font-semibold transition-colors ${
+                    form.size === "medium"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-200 bg-white text-gray-700"
+                  }`}
+                >
+                  {sizeLabel("medium")}
+                </button>
+              </div>
+
+              <div className="mt-2 text-xs text-gray-500">
+                규정: 소형 ≤ {SMALL_MAX}kg / 중형 ≤ {MEDIUM_MAX}kg / 15kg 초과 등록 불가
+              </div>
+            </div>
+
+            {/* ✅ 몸무게 */}
+            <div>
+              <label className="text-xs font-semibold text-gray-500 mb-1 block">몸무게 (kg) *</label>
+              <input
+                type="number"
+                value={form.weight}
+                onChange={(e) => setForm({ ...form, weight: e.target.value })}
+                className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none ${
+                  isOverLimit || (form.weight && !isMatch)
+                    ? "border-red-400 focus:border-red-500"
+                    : "border-gray-200 focus:border-blue-400"
+                }`}
+              />
+
+              <div className={`mt-2 text-xs ${isOverLimit || (form.weight && !isMatch) ? "text-red-600" : "text-gray-500"}`}>
+                {hint}
+              </div>
+
+              {isOverLimit && (
+                <div className="mt-2 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                  ❌ 15kg 초과는 등록할 수 없습니다. (현재 입력: {weightNum}kg)
+                </div>
+              )}
             </div>
 
             <div>
@@ -334,16 +467,6 @@ export default function Pets() {
               <input
                 value={form.breed}
                 onChange={(e) => setForm({ ...form, breed: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-gray-500 mb-1 block">몸무게 (kg) *</label>
-              <input
-                type="number"
-                value={form.weight}
-                onChange={(e) => setForm({ ...form, weight: e.target.value })}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400"
               />
             </div>
@@ -371,7 +494,7 @@ export default function Pets() {
               />
             </div>
 
-            {/* ✅ 사진 */}
+            {/* 사진 */}
             <div>
               <label className="text-xs font-semibold text-gray-500 mb-1 block">사진 업로드</label>
               <div className="flex items-center gap-4">
@@ -409,9 +532,10 @@ export default function Pets() {
               >
                 취소
               </button>
+
               <button
                 onClick={handleSubmit}
-                disabled={!form.name || !form.weight || !form.type}
+                disabled={!canSubmit}
                 className="flex-[2] bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
               >
                 {editId ? "수정 완료" : "등록하기"} 🐾
