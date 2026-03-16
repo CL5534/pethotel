@@ -1,116 +1,50 @@
-import { useEffect, useState } from 'react'
-import './App.css'
+import { Route, Routes } from 'react-router-dom'
+import MainLayout from './layouts/MainLayout.jsx'
+import AdminPage from './pages/AdminPage.jsx'
+import BookingPage from './pages/BookingPage.jsx'
+import CommunityPage from './pages/CommunityPage.jsx'
+import HomePage from './pages/HomePage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
+import MyPage from './pages/MyPage.jsx'
+import PrivacyPage from './pages/PrivacyPage.jsx'
+import SignUpPage from './pages/SignUpPage.jsx'
+import TermsPage from './pages/TermsPage.jsx'
 
 function App() {
-  const [number, setNumber] = useState('')
-  const [items, setItems] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-
-  const fetchItems = async () => {
-    setLoading(true)
-    setError('')
-
-    try {
-      const response = await fetch('/api/test')
-
-      if (!response.ok) {
-        throw new Error('목록을 불러오지 못했습니다.')
-      }
-
-      const data = await response.json()
-      setItems(data)
-    } catch (fetchError) {
-      setError(fetchError.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchItems()
-  }, [])
-
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-
-    if (!number.trim()) {
-      setError('숫자를 입력하세요.')
-      return
-    }
-
-    setSubmitting(true)
-    setError('')
-
-    try {
-      const response = await fetch('/api/test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ number: Number(number) }),
-      })
-
-      if (!response.ok) {
-        throw new Error('데이터 저장에 실패했습니다.')
-      }
-
-      setNumber('')
-      await fetchItems()
-    } catch (submitError) {
-      setError(submitError.message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   return (
-    <main className="app">
-      <section className="panel">
-        <p className="eyebrow">Frontend + Backend + DB Test</p>
-        <h1>test1 연결 확인</h1>
-        <p className="description">
-          숫자를 입력하고 저장하면 Spring Boot를 거쳐 MariaDB test1 테이블에 반영됩니다.
-        </p>
+    <Routes>
+      {/*
+        App.jsx는 "어떤 URL에 어떤 페이지를 보여줄지"만 담당하는 라우팅 진입점이다.
+        공통 UI는 각 페이지에서 중복 렌더링하지 않고 MainLayout 하나로 묶는다.
 
-        <form className="form" onSubmit={handleSubmit}>
-          <input
-            type="number"
-            value={number}
-            onChange={(event) => setNumber(event.target.value)}
-            placeholder="숫자 입력"
-          />
-          <button type="submit" disabled={submitting}>
-            {submitting ? '저장 중...' : '저장'}
-          </button>
-        </form>
+        MainLayout 안에는 Header / Footer / <Outlet /> 구조가 들어있다.
+        아래처럼 Route를 중첩하면 react-router가 현재 URL에 맞는 페이지를 찾아
+        MainLayout 내부의 <Outlet /> 자리에 자동으로 꽂아 준다.
 
-        {error ? <p className="error">{error}</p> : null}
+        예시:
+        - /          -> MainLayout + HomePage
+        - /login     -> MainLayout + LoginPage
+        - /community -> MainLayout + CommunityPage
 
-        <div className="listHeader">
-          <h2>저장된 데이터</h2>
-          <button type="button" className="ghostButton" onClick={fetchItems}>
-            새로고침
-          </button>
-        </div>
-
-        {loading ? (
-          <p className="status">불러오는 중...</p>
-        ) : items.length === 0 ? (
-          <p className="status">데이터가 없습니다.</p>
-        ) : (
-          <ul className="list">
-            {items.map((item) => (
-              <li key={item.id} className="listItem">
-                <span>id {item.id}</span>
-                <strong>{item.number}</strong>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </main>
+        즉 "껍데기(MainLayout)"는 유지하고 "가운데 내용"만 바꾸는 구조다.
+        페이지가 늘어나도 이 파일에는 Route만 추가하면 되므로 유지보수가 쉽다.
+      */}
+      <Route element={<MainLayout />}>
+        {/* 메인 홈: 첫 진입 화면 */}
+        <Route path="/" element={<HomePage />} />
+        {/* 인증 관련 페이지: 추후 백엔드 인증 API와 연결될 예정 */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignUpPage />} />
+        {/* 고객용 기능 페이지: 현재는 골격만 있고 이후 기능별로 확장 */}
+        <Route path="/booking" element={<BookingPage />} />
+        <Route path="/mypage" element={<MyPage />} />
+        <Route path="/community" element={<CommunityPage />} />
+        {/* 관리자 / 정책 페이지: 권한 제어는 추후 AuthContext + 백엔드 인증으로 연결 */}
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+      </Route>
+    </Routes>
   )
 }
 

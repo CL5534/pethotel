@@ -1,0 +1,67 @@
+.communityHeroSection {
+  position: relative;
+  overflow: hidden;
+  padding: 44px 40px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(110, 139, 116, 0.96), rgba(58, 81, 62, 0.96));
+  box-shadow: var(--shadow-soft);
+}
+
+.communityHeroSection::before,
+.communityHeroSection::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.communityHeroSection::before {
+  top: -80px;
+  right: -20px;
+  width: 240px;
+  height: 240px;
+}
+
+.communityHeroSection::after {
+  bottom: -90px;
+  left: 14%;
+  width: 180px;
+  height: 180px;
+}
+
+.communityHeroContent {
+  position: relative;
+  z-index: 1;
+}
+
+.communityHeroBreadcrumb {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: var(--text-micro);
+  letter-spacing: 0.12em;
+}
+
+.communityHeroContent h1 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: clamp(32px, 4vw, 42px);
+  line-height: 1.15;
+}
+
+.communityHeroContent p:last-child {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 15px;
+}
+
+@media (max-width: 768px) {
+  .communityHeroSection {
+    padding: 34px 22px;
+  }
+}
+
+@media (max-width: 640px) {
+  .communityHeroContent h1 {
+    font-size: 28px;
+  }
+}

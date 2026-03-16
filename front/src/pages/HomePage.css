@@ -1,0 +1,12 @@
+.homePage {
+  width: min(var(--container-xl), 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: var(--space-xl);
+}
+
+@media (max-width: 1200px) {
+  .homePage {
+    width: min(var(--container-lg), 100%);
+  }
+}

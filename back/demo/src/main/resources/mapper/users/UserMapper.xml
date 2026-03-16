@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.users.UserDAO">
+  <resultMap id="userResultMap" type="com.example.demo.users.UserDTO">
+    <id property="id" column="id" />
+    <result property="name" column="name" />
+    <result property="email" column="email" />
+    <result property="passwordHash" column="password_hash" />
+    <result property="phone" column="phone" />
+    <result property="address" column="address" />
+    <result property="createdAt" column="created_at" />
+  </resultMap>
+
+  <insert id="insertUser" parameterType="com.example.demo.users.UserDTO" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO users (
+      name,
+      email,
+      password_hash,
+      phone,
+      address
+    )
+    VALUES (
+      #{name},
+      #{email},
+      #{passwordHash},
+      #{phone},
+      #{address}
+    )
+  </insert>
+
+  <select id="selectUserByEmail" resultMap="userResultMap">
+    SELECT
+      id,
+      name,
+      email,
+      password_hash,
+      phone,
+      address,
+      created_at
+    FROM users
+    WHERE email = #{email}
+  </select>
+
+  <select id="selectUserById" resultMap="userResultMap">
+    SELECT
+      id,
+      name,
+      email,
+      password_hash,
+      phone,
+      address,
+      created_at
+    FROM users
+    WHERE id = #{id}
+  </select>
+</mapper>

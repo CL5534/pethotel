@@ -1,0 +1,15 @@
+#root {
+  min-height: 100vh;
+}
+
+.app {
+  min-height: calc(100vh - 144px);
+  display: block;
+  padding: 28px var(--page-gutter) 56px;
+}
+
+@media (max-width: 640px) {
+  .app {
+    padding: 16px;
+  }
+}

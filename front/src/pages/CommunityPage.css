@@ -1,0 +1,17 @@
+.communityPage {
+  width: min(var(--container-lg), 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 28px;
+}
+
+.communityPageBody {
+  display: grid;
+  gap: 20px;
+}
+
+@media (max-width: 640px) {
+  .communityPage {
+    gap: 20px;
+  }
+}

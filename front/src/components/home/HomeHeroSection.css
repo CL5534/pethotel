@@ -1,0 +1,94 @@
+.heroBannerSection {
+  position: relative;
+  min-height: 420px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+  background-position: center;
+  background-size: cover;
+  background-color: var(--color-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+}
+
+.heroBannerContent {
+  padding: 42px;
+  color: #fff;
+}
+
+.heroBannerEyebrow {
+  color: rgba(255, 244, 230, 0.92);
+}
+
+.heroBannerContent h1 {
+  margin: 0;
+  color: #fff;
+  font-size: var(--text-display);
+  line-height: 1.05;
+}
+
+.heroBannerActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.primaryLinkButton,
+.secondaryLinkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primaryLinkButton {
+  background: var(--text-strong);
+  color: #fff;
+}
+
+.secondaryLinkButton {
+  background: var(--color-accent-soft);
+  color: var(--brand-strong);
+  border: 1px solid var(--border-soft);
+}
+
+.heroGhostButton {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 1200px) {
+  .heroBannerSection {
+    min-height: 460px;
+  }
+}
+
+@media (max-width: 900px) {
+  .heroBannerSection {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .heroBannerSection {
+    min-height: 360px;
+  }
+
+  .heroBannerContent {
+    padding: 24px;
+  }
+
+  .heroBannerContent h1 {
+    font-size: 38px;
+  }
+}
