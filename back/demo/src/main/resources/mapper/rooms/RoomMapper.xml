@@ -1,0 +1,96 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.rooms.RoomDAO">
+
+  <resultMap id="roomResultMap" type="com.example.demo.rooms.RoomDTO">
+    <id property="id" column="id" />
+    <result property="roomCode" column="room_code" />
+    <result property="name" column="name" />
+    <result property="sizeType" column="size_type" />
+    <result property="maxWeightKg" column="max_weight_kg" />
+    <result property="capacity" column="capacity" />
+    <result property="description" column="description" />
+    <result property="isActive" column="is_active" />
+  </resultMap>
+
+  <select id="countRooms" resultType="int">
+    SELECT COUNT(*)
+    FROM rooms
+  </select>
+
+  <insert id="insertDefaultRoom" parameterType="com.example.demo.rooms.RoomDTO" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO rooms (
+      room_code,
+      name,
+      size_type,
+      max_weight_kg,
+      capacity,
+      description,
+      is_active
+    )
+    VALUES (
+      #{roomCode},
+      #{name},
+      #{sizeType},
+      #{maxWeightKg},
+      #{capacity},
+      #{description},
+      #{isActive}
+    )
+  </insert>
+
+  <select id="selectActiveRooms" resultMap="roomResultMap">
+    SELECT
+      id,
+      room_code,
+      name,
+      size_type,
+      max_weight_kg,
+      capacity,
+      description,
+      is_active
+    FROM rooms
+    WHERE is_active = 1
+    ORDER BY id ASC
+  </select>
+
+  <select id="selectRoomById" resultMap="roomResultMap">
+    SELECT
+      id,
+      room_code,
+      name,
+      size_type,
+      max_weight_kg,
+      capacity,
+      description,
+      is_active
+    FROM rooms
+    WHERE id = #{roomId}
+  </select>
+
+  <select id="selectRoomByIdForUpdate" resultMap="roomResultMap">
+    SELECT
+      id,
+      room_code,
+      name,
+      size_type,
+      max_weight_kg,
+      capacity,
+      description,
+      is_active
+    FROM rooms
+    WHERE id = #{roomId}
+    FOR UPDATE
+  </select>
+
+  <select id="countReservedByRoom" resultType="int">
+    SELECT COUNT(*)
+    FROM reservations
+    WHERE room_id = #{roomId}
+      AND status IN ('PAYMENT_PENDING', 'CONFIRMED', 'CHECKED_IN')
+      AND checkin_date &lt; #{checkOutDate}
+      AND checkout_date &gt; #{checkInDate}
+  </select>
+</mapper>

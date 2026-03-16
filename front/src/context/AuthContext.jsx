@@ -120,6 +120,30 @@ function AuthProvider({ children }) {
     })
   }
 
+  const updateProfile = async ({ name, phone, address }) => {
+    const response = await fetch(`${API_BASE_URL}/api/users/me`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        name,
+        phone,
+        address,
+      }),
+    })
+
+    const responseBody = await response.json().catch(() => null)
+
+    if (!response.ok) {
+      throw new Error(responseBody?.message || '내 정보 수정에 실패했습니다.')
+    }
+
+    setUser(responseBody)
+    return responseBody
+  }
+
   useEffect(() => {
     /*
       개발자도구 Application > Session Storage에서 바로 확인할 수 있도록
@@ -170,6 +194,7 @@ function AuthProvider({ children }) {
       isLoading,
       login,
       logout,
+      updateProfile,
       fetchCurrentUser,
     }),
     [user, accessToken, isLoading],

@@ -1,0 +1,161 @@
+﻿.paymentPage {
+  width: min(var(--container-lg), 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.paymentHeading {
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(110, 139, 116, 0.97), rgba(58, 81, 62, 0.96));
+  border: 1px solid rgba(58, 81, 62, 0.55);
+  padding: 24px;
+}
+
+.paymentHeading h1 {
+  margin: 0;
+  color: #fff;
+}
+
+.paymentHeading p {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.paymentHeading .sectionEyebrow {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.paymentLayout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.paymentCard {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(47, 36, 31, 0.2);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.paymentCard h2 {
+  margin: 0 0 12px;
+  color: var(--color-text-strong);
+}
+
+.paymentInfoList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.paymentInfoList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.paymentAmountBox {
+  margin-top: 14px;
+  border-top: 1px dashed rgba(47, 36, 31, 0.2);
+  padding-top: 12px;
+}
+
+.paymentAmountBox p {
+  margin: 0;
+  color: #6d5b52;
+}
+
+.paymentAmountBox strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 24px;
+  color: var(--color-text-strong);
+}
+
+.paymentMethodGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.paymentMethodButton {
+  border: 1px solid rgba(47, 36, 31, 0.2);
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.paymentMethodButton.isSelected {
+  border-color: #33543e;
+  box-shadow: inset 0 0 0 1px #33543e;
+  background: #f2f9f4;
+}
+
+.paymentHint {
+  margin: 10px 0 0;
+  color: #6d5b52;
+  font-size: 13px;
+}
+
+.paymentNotice {
+  margin: 0;
+  color: #8a2525;
+}
+
+.paymentActions {
+  display: flex;
+  gap: 10px;
+}
+
+.paymentPrimaryButton,
+.paymentSecondaryButton {
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 11px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.paymentPrimaryButton {
+  background: linear-gradient(120deg, var(--brand-strong), var(--brand));
+  color: #fff;
+}
+
+.paymentSecondaryButton {
+  background: #e9f0eb;
+  color: #2e4736;
+}
+
+.paymentResult {
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.paymentResult strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.paymentResult.success {
+  border: 1px solid #b8e8c9;
+  background: #e7f8ed;
+  color: #165a31;
+}
+
+.paymentResult.fail {
+  border: 1px solid #f3b7b7;
+  background: #ffe8e8;
+  color: #8a2525;
+}
+
+@media (max-width: 860px) {
+  .paymentLayout {
+    grid-template-columns: 1fr;
+  }
+}

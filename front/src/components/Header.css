@@ -59,6 +59,20 @@
   color: var(--color-text);
   font-weight: 600;
   font-size: var(--text-caption);
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  min-width: 92px;
+  text-align: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.siteNav a.activeNav {
+  background: #1f6f4a;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(31, 111, 74, 0.28);
 }
 
 .authNav button {

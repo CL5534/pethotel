@@ -70,6 +70,42 @@ public class UserService {
 		return toResponseUser(userDTO);
 	}
 
+	public UserDTO updateCurrentUser(UserDTO userDTO, HttpSession session) {
+		Long userId = (Long) session.getAttribute(LOGIN_USER_ID);
+
+		if (userId == null) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다.");
+		}
+
+		if (isBlank(userDTO.getName())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "이름은 필수입니다.");
+		}
+
+		if (isBlank(userDTO.getPhone())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "연락처는 필수입니다.");
+		}
+
+		if (isBlank(userDTO.getAddress())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "주소는 필수입니다.");
+		}
+
+		UserDTO savedUser = userDAO.selectUserById(userId);
+		if (savedUser == null) {
+			session.invalidate();
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "세션 사용자 정보를 찾을 수 없습니다.");
+		}
+
+		UserDTO updateTarget = new UserDTO();
+		updateTarget.setId(userId);
+		updateTarget.setName(userDTO.getName().trim());
+		updateTarget.setPhone(userDTO.getPhone().trim());
+		updateTarget.setAddress(userDTO.getAddress().trim());
+		userDAO.updateUserProfile(updateTarget);
+
+		UserDTO updatedUser = userDAO.selectUserById(userId);
+		return toResponseUser(updatedUser);
+	}
+
 	public void logout(HttpSession session) {
 		session.invalidate();
 	}

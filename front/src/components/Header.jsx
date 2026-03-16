@@ -1,10 +1,12 @@
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import './Header.css'
 
 function Header() {
   const { isLoggedIn, logout, user } = useAuth()
   const isAdminLoggedIn = false
+
+  const navClass = ({ isActive }) => (isActive ? 'activeNav' : '')
 
   return (
     <header className="siteHeader">
@@ -17,12 +19,22 @@ function Header() {
         </div>
 
         <nav className="siteNav">
-          <a href="/#contact">문의</a>
-          <Link to="/booking">예약</Link>
-          <Link to="/mypage">마이페이지</Link>
-          <Link to="/community">커뮤니티</Link>
+          <NavLink to="/" className={navClass} end>
+            Home
+          </NavLink>
+          <NavLink to="/booking" className={navClass}>
+            예약
+          </NavLink>
+          <NavLink to="/mypage" className={navClass}>
+            마이페이지
+          </NavLink>
+          <NavLink to="/community" className={navClass}>
+            커뮤니티
+          </NavLink>
           {isAdminLoggedIn ? (
-            <Link to="/admin">관리자</Link>
+            <NavLink to="/admin" className={navClass}>
+              관리자
+            </NavLink>
           ) : (
             <span className="navDisabled">관리자</span>
           )}
@@ -30,8 +42,20 @@ function Header() {
 
         <nav className="siteNav authNav">
           {isLoggedIn ? <span className="userName">{user?.name}님</span> : null}
-          {isLoggedIn ? <button type="button" onClick={logout}>로그아웃</button> : <Link to="/login">로그인</Link>}
-          {!isLoggedIn ? <Link to="/signup">회원가입</Link> : null}
+          {isLoggedIn ? (
+            <button type="button" onClick={logout}>
+              로그아웃
+            </button>
+          ) : (
+            <NavLink to="/login" className={navClass}>
+              로그인
+            </NavLink>
+          )}
+          {!isLoggedIn ? (
+            <NavLink to="/signup" className={navClass}>
+              회원가입
+            </NavLink>
+          ) : null}
         </nav>
       </div>
     </header>

@@ -1,0 +1,220 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.reservations.ReservationDAO">
+
+  <resultMap id="reservationResultMap" type="com.example.demo.reservations.ReservationDTO">
+    <id property="id" column="id" />
+    <result property="reservationCode" column="reservation_code" />
+    <result property="userId" column="user_id" />
+    <result property="petId" column="pet_id" />
+    <result property="roomId" column="room_id" />
+    <result property="checkInDate" column="checkin_date" />
+    <result property="checkOutDate" column="checkout_date" />
+    <result property="visitTime" column="visit_time" />
+    <result property="guardianName" column="guardian_name" />
+    <result property="guardianPhone" column="guardian_phone" />
+    <result property="status" column="status" />
+    <result property="baseAmount" column="base_amount" />
+    <result property="extraAmount" column="extra_amount" />
+    <result property="totalAmount" column="total_amount" />
+    <result property="createdAt" column="created_at" />
+    <result property="roomName" column="room_name" />
+    <result property="petName" column="pet_name" />
+  </resultMap>
+
+  <select id="selectFirstUserId" resultType="long">
+    SELECT id
+    FROM users
+    ORDER BY id ASC
+    LIMIT 1
+  </select>
+
+  <insert id="insertPetForReservation" parameterType="com.example.demo.reservations.PetInsertDTO" useGeneratedKeys="true" keyProperty="petId">
+    INSERT INTO pets (
+      user_id,
+      name,
+      breed,
+      weight_kg,
+      birth_date,
+      notes
+    )
+    VALUES (
+      #{userId},
+      #{name},
+      #{breed},
+      #{weightKg},
+      NULL,
+      #{notes}
+    )
+  </insert>
+
+  <select id="selectPetIdByUserAndNameAndBreed" resultType="long">
+    SELECT id
+    FROM pets
+    WHERE user_id = #{userId}
+      AND name = #{name}
+      AND breed = #{breed}
+    ORDER BY id DESC
+    LIMIT 1
+  </select>
+
+  <insert id="insertReservation" parameterType="com.example.demo.reservations.ReservationDTO" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO reservations (
+      reservation_code,
+      user_id,
+      pet_id,
+      room_id,
+      checkin_date,
+      checkout_date,
+      visit_time,
+      guardian_name,
+      guardian_phone,
+      status,
+      base_amount,
+      extra_amount,
+      total_amount
+    )
+    VALUES (
+      #{reservationCode},
+      #{userId},
+      #{petId},
+      #{roomId},
+      #{checkInDate},
+      #{checkOutDate},
+      #{visitTime},
+      #{guardianName},
+      #{guardianPhone},
+      #{status},
+      #{baseAmount},
+      #{extraAmount},
+      #{totalAmount}
+    )
+  </insert>
+
+  <select id="selectReservationList" resultMap="reservationResultMap">
+    SELECT
+      r.id,
+      r.reservation_code,
+      r.user_id,
+      r.pet_id,
+      r.room_id,
+      r.checkin_date,
+      r.checkout_date,
+      r.visit_time,
+      r.guardian_name,
+      r.guardian_phone,
+      r.status,
+      r.base_amount,
+      r.extra_amount,
+      r.total_amount,
+      r.created_at,
+      rm.name AS room_name,
+      p.name AS pet_name
+    FROM reservations r
+    INNER JOIN rooms rm ON rm.id = r.room_id
+    INNER JOIN pets p ON p.id = r.pet_id
+    ORDER BY r.created_at DESC
+  </select>
+
+  <select id="selectReservationListByUserId" resultMap="reservationResultMap">
+    SELECT
+      r.id,
+      r.reservation_code,
+      r.user_id,
+      r.pet_id,
+      r.room_id,
+      r.checkin_date,
+      r.checkout_date,
+      r.visit_time,
+      r.guardian_name,
+      r.guardian_phone,
+      r.status,
+      r.base_amount,
+      r.extra_amount,
+      r.total_amount,
+      r.created_at,
+      rm.name AS room_name,
+      p.name AS pet_name
+    FROM reservations r
+    INNER JOIN rooms rm ON rm.id = r.room_id
+    INNER JOIN pets p ON p.id = r.pet_id
+    WHERE r.user_id = #{userId}
+    ORDER BY r.created_at DESC
+  </select>
+
+  <select id="selectReservationByCode" resultMap="reservationResultMap">
+    SELECT
+      r.id,
+      r.reservation_code,
+      r.user_id,
+      r.pet_id,
+      r.room_id,
+      r.checkin_date,
+      r.checkout_date,
+      r.visit_time,
+      r.guardian_name,
+      r.guardian_phone,
+      r.status,
+      r.base_amount,
+      r.extra_amount,
+      r.total_amount,
+      r.created_at,
+      rm.name AS room_name,
+      p.name AS pet_name
+    FROM reservations r
+    INNER JOIN rooms rm ON rm.id = r.room_id
+    INNER JOIN pets p ON p.id = r.pet_id
+    WHERE r.reservation_code = #{reservationCode}
+  </select>
+
+  <select id="selectReservationByCodeAndUserId" resultMap="reservationResultMap">
+    SELECT
+      r.id,
+      r.reservation_code,
+      r.user_id,
+      r.pet_id,
+      r.room_id,
+      r.checkin_date,
+      r.checkout_date,
+      r.visit_time,
+      r.guardian_name,
+      r.guardian_phone,
+      r.status,
+      r.base_amount,
+      r.extra_amount,
+      r.total_amount,
+      r.created_at,
+      rm.name AS room_name,
+      p.name AS pet_name
+    FROM reservations r
+    INNER JOIN rooms rm ON rm.id = r.room_id
+    INNER JOIN pets p ON p.id = r.pet_id
+    WHERE r.reservation_code = #{reservationCode}
+      AND r.user_id = #{userId}
+  </select>
+
+  <update id="updateReservationStatusByCode">
+    UPDATE reservations
+    SET
+      status = #{status},
+      updated_at = CURRENT_TIMESTAMP
+    WHERE reservation_code = #{reservationCode}
+  </update>
+
+  <delete id="deleteReservationByCodeAndUserId">
+    DELETE FROM reservations
+    WHERE reservation_code = #{reservationCode}
+      AND user_id = #{userId}
+  </delete>
+
+  <select id="countOverlappingReservations" resultType="int">
+    SELECT COUNT(*)
+    FROM reservations
+    WHERE room_id = #{roomId}
+      AND status IN ('PAYMENT_PENDING', 'CONFIRMED', 'CHECKED_IN')
+      AND checkin_date &lt; #{checkOutDate}
+      AND checkout_date &gt; #{checkInDate}
+  </select>
+</mapper>

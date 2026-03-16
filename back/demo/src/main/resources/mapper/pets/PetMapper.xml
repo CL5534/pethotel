@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.pets.PetDAO">
+
+  <resultMap id="petResultMap" type="com.example.demo.pets.PetDTO">
+    <id property="id" column="id" />
+    <result property="userId" column="user_id" />
+    <result property="name" column="name" />
+    <result property="breed" column="breed" />
+    <result property="weightKg" column="weight_kg" />
+    <result property="birthDate" column="birth_date" />
+    <result property="notes" column="notes" />
+  </resultMap>
+
+  <select id="selectPetsByUserId" resultMap="petResultMap">
+    SELECT
+      id,
+      user_id,
+      name,
+      breed,
+      weight_kg,
+      birth_date,
+      notes
+    FROM pets
+    WHERE user_id = #{userId}
+    ORDER BY id DESC
+  </select>
+
+  <select id="selectPetById" resultMap="petResultMap">
+    SELECT
+      id,
+      user_id,
+      name,
+      breed,
+      weight_kg,
+      birth_date,
+      notes
+    FROM pets
+    WHERE id = #{petId}
+  </select>
+
+  <insert id="insertPet" parameterType="com.example.demo.pets.PetDTO" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO pets (
+      user_id,
+      name,
+      breed,
+      weight_kg,
+      birth_date,
+      notes
+    )
+    VALUES (
+      #{userId},
+      #{name},
+      #{breed},
+      #{weightKg},
+      #{birthDate},
+      #{notes}
+    )
+  </insert>
+
+  <update id="updatePet" parameterType="com.example.demo.pets.PetDTO">
+    UPDATE pets
+    SET
+      name = #{name},
+      breed = #{breed},
+      weight_kg = #{weightKg},
+      birth_date = #{birthDate},
+      notes = #{notes}
+    WHERE id = #{id}
+  </update>
+
+  <delete id="deletePet">
+    DELETE FROM pets
+    WHERE id = #{petId}
+  </delete>
+
+  <select id="countReservationsByPetId" resultType="int">
+    SELECT COUNT(*)
+    FROM reservations
+    WHERE pet_id = #{petId}
+  </select>
+</mapper>

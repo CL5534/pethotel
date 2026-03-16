@@ -1,0 +1,283 @@
+﻿.bookingPage {
+  width: min(var(--container-xl), 100%);
+  margin: 0 auto;
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.bookingHeading {
+  background: linear-gradient(135deg, rgba(110, 139, 116, 0.97), rgba(58, 81, 62, 0.96));
+  border: 1px solid rgba(58, 81, 62, 0.55);
+  border-radius: 30px;
+  box-shadow: var(--shadow-soft);
+  padding: clamp(20px, 2vw, 28px);
+}
+
+.bookingHeading h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: var(--text-title);
+}
+
+.bookingHeading .description {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.bookingHeading .sectionEyebrow {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.bookingLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  gap: var(--space-lg);
+}
+
+.bookingForm,
+.bookingSummary {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(47, 36, 31, 0.2);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: clamp(18px, 1.8vw, 24px);
+}
+
+.bookingForm h2,
+.bookingSummary h2 {
+  margin: 0 0 16px;
+  color: var(--color-text-strong);
+  font-size: 22px;
+}
+
+.bookingGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.bookingField {
+  display: grid;
+  gap: 8px;
+}
+
+.bookingField span {
+  font-size: 14px;
+  color: #4c3d36;
+  font-weight: 600;
+}
+
+.bookingField input,
+.bookingField select,
+.bookingField textarea {
+  border: 1px solid rgba(47, 36, 31, 0.24);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: #ffffff;
+  color: var(--color-text-strong);
+}
+
+.bookingField textarea {
+  resize: vertical;
+}
+
+.bookingFieldFull {
+  grid-column: 1 / -1;
+}
+
+.bookingDateRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.bookingDateField input {
+  min-height: 46px;
+  font-size: 16px;
+}
+
+.bookingRoomGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.bookingRoomCard {
+  text-align: left;
+  border: 1px solid rgba(47, 36, 31, 0.22);
+  border-radius: 14px;
+  background: #fffdfb;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.bookingRoomCard strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text-strong);
+}
+
+.bookingRoomCard p {
+  margin: 7px 0 10px;
+  color: #4a3a33;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.bookingRoomCard small {
+  color: #6d5b52;
+  font-size: 12px;
+}
+
+.bookingRoomBadge {
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+}
+
+.bookingRoomCard.isSelected {
+  border-color: #33543e;
+  box-shadow: inset 0 0 0 1px #33543e;
+  background: #f2f9f4;
+}
+
+.bookingError,
+.bookingSuccess {
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+
+.bookingError {
+  color: #8a2525;
+  background: #ffe8e8;
+  border: 1px solid #f3b7b7;
+}
+
+.bookingSuccess {
+  color: #165a31;
+  background: #e7f8ed;
+  border: 1px solid #b8e8c9;
+}
+
+.bookingActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.bookingPrimaryButton,
+.bookingSecondaryButton {
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 11px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bookingPrimaryButton {
+  background: linear-gradient(120deg, var(--brand-strong), var(--brand));
+  color: #fff;
+}
+
+.bookingSecondaryButton {
+  background: #e9f0eb;
+  color: #2e4736;
+}
+
+.bookingSecondaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.summaryList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.summaryList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+  color: #43352f;
+}
+
+.summaryList strong {
+  color: var(--color-text-strong);
+}
+
+.summaryTotal {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.summaryTotal strong {
+  font-size: 18px;
+}
+
+.policyCard,
+.resultCard {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(47, 36, 31, 0.22);
+  border-radius: 14px;
+  background: #f7f2eb;
+}
+
+.policyCard h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--color-text-strong);
+}
+
+.policyCard ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  color: #43352f;
+  font-size: 14px;
+}
+
+.resultCard p {
+  margin: 0;
+  color: var(--color-text-soft);
+  font-size: 14px;
+}
+
+.resultCard strong {
+  display: block;
+  margin: 4px 0 6px;
+  color: var(--color-text-strong);
+  font-size: 20px;
+}
+
+@media (max-width: 980px) {
+  .bookingLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .bookingDateRow {
+    grid-template-columns: 1fr;
+  }
+
+  .bookingRoomGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .bookingActions {
+    flex-direction: column;
+  }
+}

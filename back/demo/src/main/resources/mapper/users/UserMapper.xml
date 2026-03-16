@@ -55,4 +55,13 @@
     FROM users
     WHERE id = #{id}
   </select>
+
+  <update id="updateUserProfile" parameterType="com.example.demo.users.UserDTO">
+    UPDATE users
+    SET
+      name = #{name},
+      phone = #{phone},
+      address = #{address}
+    WHERE id = #{id}
+  </update>
 </mapper>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import CommunityBoardDetailModal from './communityBoardModals/CommunityBoardDetailModal.jsx'
 import CommunityBoardWriteModal from './communityBoardModals/CommunityBoardWriteModal.jsx'
@@ -158,7 +159,8 @@ function CommunityBoardSection({ categories, activeCategory }) {
   // CommunityPage -> CommunityBoardSection 순서로 들어오며,
   // categories는 글쓰기 select 옵션과 카테고리 예외 처리에 쓰고,
   // activeCategory는 실제 목록 조회 시 category 파라미터로 사용한다.
-  const { user } = useAuth() // 로그인 사용자 정보로 본인 글/댓글인지 판단한다.
+  const navigate = useNavigate()
+  const { user, isLoggedIn } = useAuth() // 로그인 사용자 정보로 본인 글/댓글인지 판단한다.
 
   // 1. 화면 상태
   const [posts, setPosts] = useState([]) // loadPosts()가 서버에서 받아온 현재 페이지 게시글 목록을 넣는 상태다.
@@ -265,6 +267,11 @@ function CommunityBoardSection({ categories, activeCategory }) {
 
   const handleOpenWriteModal = () => {
     // 툴바의 글쓰기 버튼에서 호출된다.
+    if (!isLoggedIn) {
+      window.alert('로그인 후 글쓰기가 가능합니다.')
+      navigate('/login')
+      return
+    }
     resetForm()
     setIsWriteOpen(true)
   }
@@ -272,6 +279,11 @@ function CommunityBoardSection({ categories, activeCategory }) {
   const handleOpenEditModal = () => {
     // 상세 모달 안 수정 버튼에서 호출된다.
     // 지금 상세로 보고 있는 selectedPost 내용을 form 상태로 복사해서 수정 모달을 연다.
+    if (!isLoggedIn) {
+      window.alert('로그인 후 이용해 주세요.')
+      navigate('/login')
+      return
+    }
     if (!selectedPost) return
 
     setEditingPostId(selectedPost.id)
@@ -293,6 +305,11 @@ function CommunityBoardSection({ categories, activeCategory }) {
 
   const handleAddComment = async () => {
     // commentInput은 상세 모달 input에서 입력 중인 값이고, selectedPost는 현재 보고 있는 게시글이다.
+    if (!isLoggedIn) {
+      window.alert('로그인 후 댓글 작성이 가능합니다.')
+      navigate('/login')
+      return
+    }
     const nextComment = commentInput.trim()
 
     if (!selectedPost || !nextComment) return
@@ -308,6 +325,11 @@ function CommunityBoardSection({ categories, activeCategory }) {
 
   const handleDeleteComment = async (commentId) => {
     // commentId는 CommunityBoardDetailModal.jsx에서 댓글 삭제 버튼 클릭 시 넘겨준다.
+    if (!isLoggedIn) {
+      window.alert('로그인 후 이용해 주세요.')
+      navigate('/login')
+      return
+    }
     if (!selectedPost || !commentId) return
 
     try {
@@ -320,6 +342,11 @@ function CommunityBoardSection({ categories, activeCategory }) {
 
   const handleDeletePost = async () => {
     // selectedPost.id를 기준으로 현재 보고 있는 게시글을 삭제한다.
+    if (!isLoggedIn) {
+      window.alert('로그인 후 이용해 주세요.')
+      navigate('/login')
+      return
+    }
     if (!selectedPost) return
 
     try {
@@ -337,6 +364,11 @@ function CommunityBoardSection({ categories, activeCategory }) {
   const handleSubmitPost = async () => {
     // 이 함수는 글쓰기/수정 모달의 등록 버튼에서 호출된다.
     // form 상태를 검사한 뒤 새 글 등록 또는 기존 글 수정 둘 중 하나를 처리한다.
+    if (!isLoggedIn) {
+      window.alert('로그인 후 글 작성이 가능합니다.')
+      navigate('/login')
+      return
+    }
     const nextError = {
       title: !form.title.trim(),
       content: !form.content.trim(),
@@ -410,9 +442,11 @@ function CommunityBoardSection({ categories, activeCategory }) {
               <button type="submit">검색</button>
             </form>
 
-            <button type="button" className="communityWriteButton" onClick={handleOpenWriteModal}>
-              글쓰기
-            </button>
+            {isLoggedIn ? (
+              <button type="button" className="communityWriteButton" onClick={handleOpenWriteModal}>
+                글쓰기
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -497,6 +531,7 @@ function CommunityBoardSection({ categories, activeCategory }) {
 
       <CommunityBoardDetailModal
         post={selectedPost}
+        isLoggedIn={isLoggedIn}
         currentUserId={user?.id ?? null}
         canManagePost={selectedPost ? user?.id === selectedPost.userId : false}
         commentInput={commentInput}

@@ -1,5 +1,6 @@
 function CommunityBoardDetailModal({
   post,
+  isLoggedIn,
   currentUserId,
   canManagePost,
   commentInput,
@@ -66,11 +67,14 @@ function CommunityBoardDetailModal({
             <input
               value={commentInput}
               onChange={(event) => onChangeComment(event.target.value)}
-              placeholder="댓글을 입력하세요"
+              placeholder={isLoggedIn ? '댓글을 입력하세요' : '로그인 후 댓글 작성이 가능합니다'}
+              disabled={!isLoggedIn}
             />
-            <button type="button" onClick={onAddComment}>
-              등록
-            </button>
+            {isLoggedIn ? (
+              <button type="button" onClick={onAddComment}>
+                등록
+              </button>
+            ) : null}
           </div>
         </section>
 

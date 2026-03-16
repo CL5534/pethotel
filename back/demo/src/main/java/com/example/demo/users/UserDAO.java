@@ -12,4 +12,6 @@ public interface UserDAO {
 
 	UserDTO selectUserById(@Param("id") Long id);
 
+	int updateUserProfile(UserDTO userDTO);
+
 }
