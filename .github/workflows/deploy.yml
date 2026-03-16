@@ -18,7 +18,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            export APP_DIR="$HOME/apps/pethotel"
+            export APP_DIR="$HOME/pethotel"
             export BRANCH="main"
             export FRONT_DIST_DIR="/var/www/pethotel"
             export JAR_TARGET_DIR="/opt/pethotel"

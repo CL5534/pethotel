@@ -14,14 +14,14 @@ git clone <YOUR_GITHUB_REPO_URL> pethotel
 
 ```bash
 sudo mkdir -p /etc/pethotel /opt/pethotel /var/www/pethotel
-sudo cp ~/apps/pethotel/deploy/env/pethotel.env.example /etc/pethotel/pethotel.env
+sudo cp ~/pethotel/deploy/env/pethotel.env.example /etc/pethotel/pethotel.env
 sudo nano /etc/pethotel/pethotel.env
 ```
 
 ## 3. systemd service
 
 ```bash
-sudo cp ~/apps/pethotel/deploy/systemd/pethotel.service /etc/systemd/system/pethotel.service
+sudo cp ~/pethotel/deploy/systemd/pethotel.service /etc/systemd/system/pethotel.service
 sudo systemctl daemon-reload
 sudo systemctl enable pethotel
 ```
@@ -29,7 +29,7 @@ sudo systemctl enable pethotel
 ## 4. Nginx setup
 
 ```bash
-sudo cp ~/apps/pethotel/deploy/nginx/pethotel.conf /etc/nginx/sites-available/pethotel
+sudo cp ~/pethotel/deploy/nginx/pethotel.conf /etc/nginx/sites-available/pethotel
 sudo ln -s /etc/nginx/sites-available/pethotel /etc/nginx/sites-enabled/pethotel
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
@@ -41,7 +41,7 @@ Update `server_name` in `/etc/nginx/sites-available/pethotel` to your real domai
 ## 5. First manual deploy
 
 ```bash
-cd ~/apps/pethotel
+cd ~/pethotel
 chmod +x scripts/deploy.sh
 bash scripts/deploy.sh
 ```
