@@ -1,0 +1,16 @@
+[Unit]
+Description=PetHotel Spring Boot Application
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/pethotel
+EnvironmentFile=/etc/pethotel/pethotel.env
+ExecStart=/usr/bin/java -jar /opt/pethotel/pethotel.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

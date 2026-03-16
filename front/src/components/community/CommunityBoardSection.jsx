@@ -4,7 +4,7 @@ import CommunityBoardDetailModal from './communityBoardModals/CommunityBoardDeta
 import CommunityBoardWriteModal from './communityBoardModals/CommunityBoardWriteModal.jsx'
 import './CommunityBoardSection.css'
 
-const API_BASE_URL = 'http://localhost:8080' // 이 컴포넌트 안에서 fetch를 보낼 때 공통으로 붙는 백엔드 주소다.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '' // 운영에서는 같은 도메인의 /api로 붙고, 필요하면 환경변수로 분리할 수 있다.
 const POSTS_PER_PAGE = 15 // getCommunityPosts()를 호출할 때 size 값으로 같이 들어간다.
 
 const EMPTY_FORM = {

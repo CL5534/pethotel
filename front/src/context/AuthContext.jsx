@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 const AuthContext = createContext(null)
 const AUTH_STORAGE_KEY = 'authSession'
-const API_BASE_URL = 'http://localhost:8080'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 
 function getStoredToken() {
   // 새로고침 이후에도 로그인 여부를 복원하기 위해 sessionStorage에서 토큰만 읽어온다.
