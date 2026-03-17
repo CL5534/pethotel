@@ -3,8 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import './Header.css'
 
 function Header() {
-  const { isLoggedIn, logout, user } = useAuth()
-  const isAdminLoggedIn = false
+  const { isLoggedIn, isAdmin, logout, user } = useAuth()
 
   const navClass = ({ isActive }) => (isActive ? 'activeNav' : '')
 
@@ -31,7 +30,7 @@ function Header() {
           <NavLink to="/community" className={navClass}>
             커뮤니티
           </NavLink>
-          {isAdminLoggedIn ? (
+          {isAdmin ? (
             <NavLink to="/admin" className={navClass}>
               관리자
             </NavLink>

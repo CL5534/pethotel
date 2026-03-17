@@ -64,4 +64,10 @@
       address = #{address}
     WHERE id = #{id}
   </update>
+
+  <update id="updateUserPasswordHashByEmail">
+    UPDATE users
+    SET password_hash = #{passwordHash}
+    WHERE email = #{email}
+  </update>
 </mapper>

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -37,6 +38,15 @@ public class CommunityCommentController {
 		HttpSession session
 	) {
 		return communityCommentService.createComment(postId, commentDTO, session);
+	}
+
+	@PutMapping("/comments/{commentId}")
+	public CommunityCommentDTO updateComment(
+		@PathVariable Long commentId,
+		@RequestBody CommunityCommentDTO commentDTO,
+		HttpSession session
+	) {
+		return communityCommentService.updateComment(commentId, commentDTO, session);
 	}
 
 	@DeleteMapping("/comments/{commentId}")

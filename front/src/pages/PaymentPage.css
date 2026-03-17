@@ -113,6 +113,31 @@
   gap: 10px;
 }
 
+.paymentMockBar {
+  border: 1px dashed rgba(47, 36, 31, 0.24);
+  border-radius: 12px;
+  background: #f8f6f2;
+  padding: 12px;
+}
+
+.paymentMockBar p {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: #4a3a33;
+}
+
+.paymentMockOptions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.paymentMockOptions label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .paymentPrimaryButton,
 .paymentSecondaryButton {
   border: none;
@@ -140,6 +165,22 @@
 .paymentResult strong {
   display: block;
   margin-bottom: 4px;
+}
+
+.paymentMeta {
+  margin: 4px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.paymentRetryButton {
+  margin-top: 10px;
+  border: 1px solid rgba(47, 36, 31, 0.3);
+  border-radius: 10px;
+  background: #fff;
+  color: #2f241f;
+  padding: 7px 12px;
+  cursor: pointer;
 }
 
 .paymentResult.success {

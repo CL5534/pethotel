@@ -52,6 +52,12 @@
     )
   </insert>
 
+  <update id="updateComment" parameterType="com.example.demo.community.CommunityCommentDTO">
+    UPDATE comments
+    SET content = #{content}
+    WHERE id = #{id}
+  </update>
+
   <delete id="deleteComment">
     DELETE FROM comments
     WHERE id = #{commentId}

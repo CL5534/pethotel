@@ -14,6 +14,8 @@ public interface CommunityCommentDAO {
 
 	int insertComment(CommunityCommentDTO commentDTO);
 
+	int updateComment(CommunityCommentDTO commentDTO);
+
 	int deleteComment(@Param("commentId") Long commentId);
 
 	int deleteCommentsByPostId(@Param("postId") Long postId);

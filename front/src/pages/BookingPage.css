@@ -77,6 +77,11 @@
   color: var(--color-text-strong);
 }
 
+.bookingField .bookingInputError {
+  border-color: #d93025;
+  box-shadow: inset 0 0 0 1px rgba(217, 48, 37, 0.2);
+}
+
 .bookingField textarea {
   resize: vertical;
 }
@@ -143,6 +148,11 @@
   border-color: #33543e;
   box-shadow: inset 0 0 0 1px #33543e;
   background: #f2f9f4;
+}
+
+.bookingRoomCard.hasError {
+  border-color: #d93025;
+  box-shadow: inset 0 0 0 1px rgba(217, 48, 37, 0.2);
 }
 
 .bookingError,

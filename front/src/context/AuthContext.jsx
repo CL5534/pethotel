@@ -191,6 +191,7 @@ function AuthProvider({ children }) {
       // 화면에서는 accessToken 존재 여부만으로 로그인 상태를 단순 판단한다.
       // 이후 권한(role)이나 만료(expireAt)가 생기면 이 객체에 같이 확장하면 된다.
       isLoggedIn: Boolean(accessToken),
+      isAdmin: (user?.email ?? '').toLowerCase() === 'admin@pethotel.kr',
       isLoading,
       login,
       logout,

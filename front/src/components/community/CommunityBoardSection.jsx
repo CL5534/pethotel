@@ -154,6 +154,15 @@ function deleteCommunityComment(commentId) {
   })
 }
 
+async function updateCommunityComment(commentId, payload) {
+  const response = await requestCommunity(`/api/community/comments/${commentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+
+  return normalizeComment(response)
+}
+
 function CommunityBoardSection({ categories, activeCategory }) {
   // categories, activeCategory는 CommunityPage.jsx에서 내려주는 props다.
   // CommunityPage -> CommunityBoardSection 순서로 들어오며,
@@ -175,6 +184,8 @@ function CommunityBoardSection({ categories, activeCategory }) {
   const [commentInput, setCommentInput] = useState('') // 상세 모달 댓글 input에 직접 연결된 입력 상태다.
   const [form, setForm] = useState(EMPTY_FORM) // 글쓰기/수정 모달 input, textarea, select가 같이 바라보는 상태다.
   const [formError, setFormError] = useState({ title: false, content: false }) // handleSubmitPost()에서 제목/내용 검사 후 에러 표시용으로 사용한다.
+  const [commentEditingId, setCommentEditingId] = useState(null)
+  const [commentEditingText, setCommentEditingText] = useState('')
   const [isLoading, setIsLoading] = useState(false) // 목록 로딩 표시용
   const [error, setError] = useState('') // 서버 에러 메시지
   const [reloadKey, setReloadKey] = useState(0) // 글 저장/삭제 후 useEffect를 한 번 더 태우기 위한 강제 새로고침용 숫자 상태다.
@@ -263,6 +274,8 @@ function CommunityBoardSection({ categories, activeCategory }) {
     // 이 함수는 상세 모달 닫기 버튼과 오버레이 클릭에서 호출된다.
     setSelectedPost(null)
     setCommentInput('')
+    setCommentEditingId(null)
+    setCommentEditingText('')
   }
 
   const handleOpenWriteModal = () => {
@@ -320,6 +333,38 @@ function CommunityBoardSection({ categories, activeCategory }) {
       setCommentInput('')
     } catch (exception) {
       window.alert(exception.message || '댓글 등록에 실패했습니다.')
+    }
+  }
+
+  const handleStartEditComment = (comment) => {
+    setCommentEditingId(comment.id)
+    setCommentEditingText(comment.text)
+  }
+
+  const handleCancelEditComment = () => {
+    setCommentEditingId(null)
+    setCommentEditingText('')
+  }
+
+  const handleSaveEditComment = async (commentId) => {
+    if (!isLoggedIn) {
+      window.alert('로그인 후 이용해 주세요.')
+      navigate('/login')
+      return
+    }
+    if (!selectedPost) return
+    const nextText = commentEditingText.trim()
+    if (!nextText) {
+      window.alert('댓글 내용은 필수입니다.')
+      return
+    }
+
+    try {
+      await updateCommunityComment(commentId, { content: nextText })
+      await refreshSelectedPost(selectedPost.id)
+      handleCancelEditComment()
+    } catch (exception) {
+      window.alert(exception.message || '댓글 수정에 실패했습니다.')
     }
   }
 
@@ -533,10 +578,17 @@ function CommunityBoardSection({ categories, activeCategory }) {
         post={selectedPost}
         isLoggedIn={isLoggedIn}
         currentUserId={user?.id ?? null}
-        canManagePost={selectedPost ? user?.id === selectedPost.userId : false}
+        isAdmin={(user?.email ?? '').toLowerCase() === 'admin@pethotel.kr'}
+        canManagePost={selectedPost ? (user?.id === selectedPost.userId || (user?.email ?? '').toLowerCase() === 'admin@pethotel.kr') : false}
         commentInput={commentInput}
+        commentEditingId={commentEditingId}
+        commentEditingText={commentEditingText}
         onChangeComment={setCommentInput}
+        onChangeCommentEditingText={setCommentEditingText}
+        onStartEditComment={handleStartEditComment}
+        onCancelEditComment={handleCancelEditComment}
         onAddComment={handleAddComment}
+        onSaveEditComment={handleSaveEditComment}
         onDeleteComment={handleDeleteComment}
         onClose={handleClosePost}
         onOpenEditModal={handleOpenEditModal}

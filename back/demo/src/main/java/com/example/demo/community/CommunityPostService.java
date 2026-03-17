@@ -8,6 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.example.demo.users.UserDAO;
+import com.example.demo.users.UserDTO;
+
 import jakarta.servlet.http.HttpSession;
 
 @Service
@@ -17,10 +20,16 @@ public class CommunityPostService {
 
 	private final CommunityPostDAO communityPostDAO;
 	private final CommunityCommentDAO communityCommentDAO;
+	private final UserDAO userDAO;
 
-	public CommunityPostService(CommunityPostDAO communityPostDAO, CommunityCommentDAO communityCommentDAO) {
+	public CommunityPostService(
+		CommunityPostDAO communityPostDAO,
+		CommunityCommentDAO communityCommentDAO,
+		UserDAO userDAO
+	) {
 		this.communityPostDAO = communityPostDAO;
 		this.communityCommentDAO = communityCommentDAO;
+		this.userDAO = userDAO;
 	}
 
 	public Map<String, Object> getPostList(String category, String searchType, String searchKeyword, int page, int size) {
@@ -76,7 +85,13 @@ public class CommunityPostService {
 
 	public void deletePost(Long postId, HttpSession session) {
 		Long loginUserId = getLoginUserId(session);
-		getOwnedPost(postId, loginUserId); // 작성자 검증이 통과해야 삭제 가능
+		CommunityPostDTO savedPost = communityPostDAO.selectPostById(postId);
+		if (savedPost == null) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
+		}
+		if (!savedPost.getUserId().equals(loginUserId) && !isAdminUser(loginUserId)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자 또는 관리자만 게시글을 삭제할 수 있습니다.");
+		}
 		communityCommentDAO.deleteCommentsByPostId(postId); // 실제 DB에는 ON DELETE CASCADE가 없을 수 있어 댓글을 먼저 지운다.
 		communityPostDAO.deletePost(postId);
 	}
@@ -121,6 +136,12 @@ public class CommunityPostService {
 
 	private boolean isBlank(String value) {
 		return value == null || value.trim().isEmpty();
+	}
+
+	private boolean isAdminUser(Long userId) {
+		UserDTO userDTO = userDAO.selectUserById(userId);
+		if (userDTO == null || userDTO.getEmail() == null) return false;
+		return "admin@pethotel.kr".equalsIgnoreCase(userDTO.getEmail().trim());
 	}
 
 }

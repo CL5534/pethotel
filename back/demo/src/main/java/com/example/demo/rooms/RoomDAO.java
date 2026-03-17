@@ -19,6 +19,12 @@ public interface RoomDAO {
 
 	RoomDTO selectRoomByIdForUpdate(@Param("roomId") Long roomId);
 
+	int insertRoom(RoomDTO room);
+
+	int updateRoom(RoomDTO room);
+
+	int softDeleteRoom(@Param("roomId") Long roomId);
+
 	int countReservedByRoom(
 		@Param("roomId") Long roomId,
 		@Param("checkInDate") LocalDate checkInDate,

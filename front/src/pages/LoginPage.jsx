@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import './AuthPage.css'
 
+const DEV_ADMIN_EMAIL = 'admin@pethotel.kr'
+const DEV_ADMIN_PASSWORD = '123qweasdzxc'
+
 function LoginPage() {
   const navigate = useNavigate()
   const { login, isLoading } = useAuth()
@@ -99,6 +102,19 @@ function LoginPage() {
             </button>
           </div>
 
+          {import.meta.env.DEV ? (
+            <button
+              type="button"
+              className="authQuickFillButton"
+              onClick={() => {
+                setEmail(DEV_ADMIN_EMAIL)
+                setPassword(DEV_ADMIN_PASSWORD)
+              }}
+            >
+              개발용 관리자 계정 자동입력
+            </button>
+          ) : null}
+
           <div className="authLinkRow">
             <Link to="/signup" className="authTextLink">
               회원가입
@@ -110,7 +126,10 @@ function LoginPage() {
           </div>
 
           {/* 요구사항 시트의 보안 메모를 사용자가 알 수 있게 미리 노출한다. */}
-          <p className="authHint authHintLogin">보안 정책상 5회 실패 시 계정 잠금 처리가 적용될 예정입니다.</p>
+          <p className="authHint authHintLogin">
+            보안 정책상 5회 실패 시 계정 잠금 처리가 적용될 예정입니다.
+            {import.meta.env.DEV ? ` 개발용 비밀번호: ${DEV_ADMIN_PASSWORD}` : ''}
+          </p>
         </form>
       </div>
     </section>

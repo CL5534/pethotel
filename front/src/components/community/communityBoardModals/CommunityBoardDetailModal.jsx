@@ -2,10 +2,17 @@ function CommunityBoardDetailModal({
   post,
   isLoggedIn,
   currentUserId,
+  isAdmin,
   canManagePost,
   commentInput,
+  commentEditingId,
+  commentEditingText,
   onChangeComment,
+  onChangeCommentEditingText,
+  onStartEditComment,
+  onCancelEditComment,
   onAddComment,
+  onSaveEditComment,
   onDeleteComment,
   onClose,
   onOpenEditModal,
@@ -43,17 +50,39 @@ function CommunityBoardDetailModal({
                   <div>
                     <div className="communityCommentTop">
                       <strong>{comment.author}</strong>
-                      {currentUserId === comment.userId ? (
-                        <button
-                          type="button"
-                          className="communityCommentDelete"
-                          onClick={() => onDeleteComment(comment.id)}
-                        >
-                          삭제
-                        </button>
-                      ) : null}
+                      <div>
+                        {currentUserId === comment.userId ? (
+                          <button
+                            type="button"
+                            className="communityCommentDelete"
+                            onClick={() => onStartEditComment(comment)}
+                          >
+                            수정
+                          </button>
+                        ) : null}
+                        {currentUserId === comment.userId || isAdmin ? (
+                          <button
+                            type="button"
+                            className="communityCommentDelete"
+                            onClick={() => onDeleteComment(comment.id)}
+                          >
+                            삭제
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-                    <p>{comment.text}</p>
+                    {commentEditingId === comment.id ? (
+                      <div className="communityCommentEditWrap">
+                        <input
+                          value={commentEditingText}
+                          onChange={(event) => onChangeCommentEditingText(event.target.value)}
+                        />
+                        <button type="button" onClick={() => onSaveEditComment(comment.id)}>저장</button>
+                        <button type="button" onClick={onCancelEditComment}>취소</button>
+                      </div>
+                    ) : (
+                      <p>{comment.text}</p>
+                    )}
                     <span>{comment.createdAt}</span>
                   </div>
                 </article>

@@ -6,10 +6,30 @@ import BookingRoomSelector from '../components/booking/BookingRoomSelector.jsx'
 import BookingSummaryCard from '../components/booking/BookingSummaryCard.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { VISIT_TIME_RULES } from '../data/roomCatalog.js'
-import { createReservation, getMyPets, getRooms, saveDraft } from '../services/reservationService.js'
+import {
+  createReservation,
+  getBookingFormDraft,
+  getMyPets,
+  getRooms,
+  saveBookingFormDraft,
+  saveDraft,
+} from '../services/reservationService.js'
 import './BookingPage.css'
 
 const PHONE_REGEX = /^01[0-9]-?\d{3,4}-?\d{4}$/
+const DEFAULT_FORM = {
+  checkInDate: '',
+  checkOutDate: '',
+  roomType: '',
+  ownerName: '',
+  contact: '',
+  petId: '',
+  petName: '',
+  petBreed: '',
+  petAge: '',
+  notes: '',
+  visitTime: '10:00',
+}
 
 function toDate(value) {
   if (!value) return null
@@ -54,20 +74,9 @@ function BookingPage() {
   const { user, isLoggedIn } = useAuth()
   const [rooms, setRooms] = useState([])
   const [pets, setPets] = useState([])
-  const [form, setForm] = useState({
-    checkInDate: '',
-    checkOutDate: '',
-    roomType: '',
-    ownerName: '',
-    contact: '',
-    petId: '',
-    petName: '',
-    petBreed: '',
-    petAge: '',
-    notes: '',
-    visitTime: '10:00',
-  })
+  const [form, setForm] = useState(() => ({ ...DEFAULT_FORM, ...(getBookingFormDraft() ?? {}) }))
   const [isPrefilled, setIsPrefilled] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [reservationCode, setReservationCode] = useState('')
@@ -92,6 +101,10 @@ function BookingPage() {
       mounted = false
     }
   }, [form.checkInDate, form.checkOutDate])
+
+  useEffect(() => {
+    saveBookingFormDraft(form)
+  }, [form])
 
   useEffect(() => {
     if (!isLoggedIn || !user || isPrefilled) return
@@ -147,6 +160,13 @@ function BookingPage() {
   const totalAmount = baseAmount + (extraFee > 0 ? extraFee : 0)
 
   const handleChange = (key, value) => {
+    setFieldErrors((current) => {
+      if (!current[key]) return current
+      const next = { ...current }
+      delete next[key]
+      return next
+    })
+
     if (key === 'petId') {
       const selected = pets.find((pet) => String(pet.id) === String(value))
       setForm((current) => ({
@@ -166,8 +186,18 @@ function BookingPage() {
     event.preventDefault()
     setError('')
     setSuccess('')
+    setFieldErrors({})
 
-    if (!form.checkInDate || !form.checkOutDate || !form.roomType || !form.ownerName.trim() || !form.contact.trim() || !form.petId) {
+    const nextFieldErrors = {}
+    if (!form.checkInDate) nextFieldErrors.checkInDate = true
+    if (!form.checkOutDate) nextFieldErrors.checkOutDate = true
+    if (!form.roomType) nextFieldErrors.roomType = true
+    if (!form.ownerName.trim()) nextFieldErrors.ownerName = true
+    if (!form.contact.trim()) nextFieldErrors.contact = true
+    if (!form.petId) nextFieldErrors.petId = true
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors)
       setError('필수 입력 항목을 모두 작성해주세요.')
       return
     }
@@ -242,6 +272,7 @@ function BookingPage() {
             <BookingRoomSelector
               rooms={rooms}
               selectedRoomId={form.roomType}
+              hasError={Boolean(fieldErrors.roomType)}
               onSelectRoom={(roomId) => handleChange('roomType', String(roomId))}
             />
 
@@ -249,6 +280,7 @@ function BookingPage() {
               form={form}
               today={today}
               pets={pets}
+              fieldErrors={fieldErrors}
               onChange={handleChange}
               onGoMyPage={() => navigate('/mypage')}
             />

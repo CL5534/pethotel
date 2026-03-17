@@ -1,8 +1,11 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 const DRAFT_KEY = 'pethotel_booking_draft'
+const BOOKING_FORM_DRAFT_KEY = 'pethotel_booking_form_draft'
+const MOCK_PAID_CODES_KEY = 'pethotel_mock_paid_codes'
+const MOCK_PAYMENT_LOGS_KEY = 'pethotel_mock_payment_logs'
 
-function readJson(key, fallback) {
-  const raw = localStorage.getItem(key)
+function readJson(storage, key, fallback) {
+  const raw = storage.getItem(key)
   if (!raw) return fallback
   try {
     return JSON.parse(raw)
@@ -11,8 +14,38 @@ function readJson(key, fallback) {
   }
 }
 
-function writeJson(key, value) {
-  localStorage.setItem(key, JSON.stringify(value))
+function writeJson(storage, key, value) {
+  storage.setItem(key, JSON.stringify(value))
+}
+
+function getMockPaidCodes() {
+  return readJson(localStorage, MOCK_PAID_CODES_KEY, [])
+}
+
+function hasMockPaidCode(reservationCode) {
+  return getMockPaidCodes().includes(reservationCode)
+}
+
+function clearMockPaidReservation(reservationCode) {
+  const nextCodes = getMockPaidCodes().filter((code) => code !== reservationCode)
+  writeJson(localStorage, MOCK_PAID_CODES_KEY, nextCodes)
+}
+
+function getMockPaymentLogs() {
+  return readJson(localStorage, MOCK_PAYMENT_LOGS_KEY, {})
+}
+
+function saveMockPaymentLog(log) {
+  const logs = getMockPaymentLogs()
+  logs[log.reservationCode] = log
+  writeJson(localStorage, MOCK_PAYMENT_LOGS_KEY, logs)
+}
+
+function clearMockPaymentLog(reservationCode) {
+  const logs = getMockPaymentLogs()
+  if (!logs[reservationCode]) return
+  delete logs[reservationCode]
+  writeJson(localStorage, MOCK_PAYMENT_LOGS_KEY, logs)
 }
 
 function normalizeRoom(room) {
@@ -39,17 +72,22 @@ function normalizeReservation(item) {
     CANCELED: '취소완료',
   }
 
+  const statusCode = item.status === 'PAYMENT_PENDING' && hasMockPaidCode(item.reservationCode)
+    ? 'CONFIRMED'
+    : item.status
+
   return {
     reservationCode: item.reservationCode,
     roomId: item.roomId,
     checkInDate: item.checkInDate,
     checkOutDate: item.checkOutDate,
+    visitTime: item.visitTime,
     roomName: item.roomName,
     petName: item.petName,
     guardianName: item.guardianName,
     guardianPhone: item.guardianPhone,
-    status: statusMap[item.status] ?? item.status,
-    statusCode: item.status,
+    status: statusMap[statusCode] ?? statusCode,
+    statusCode,
     totalAmount: item.totalAmount,
   }
 }
@@ -82,6 +120,49 @@ export async function getRooms(checkInDate, checkOutDate) {
   return body.map(normalizeRoom)
 }
 
+export async function createAdminRoom(payload) {
+  const response = await fetch(`${API_BASE_URL}/api/admin/rooms`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(body?.message || '객실 등록에 실패했습니다.')
+  }
+  return normalizeRoom(body)
+}
+
+export async function updateAdminRoom(roomId, payload) {
+  const response = await fetch(`${API_BASE_URL}/api/admin/rooms/${roomId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(body?.message || '객실 수정에 실패했습니다.')
+  }
+  return normalizeRoom(body)
+}
+
+export async function deleteAdminRoom(roomId) {
+  const response = await fetch(`${API_BASE_URL}/api/admin/rooms/${roomId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null)
+    throw new Error(body?.message || '객실 삭제에 실패했습니다.')
+  }
+}
+
 export async function createReservation(payload) {
   const response = await fetch(`${API_BASE_URL}/api/reservations`, {
     method: 'POST',
@@ -101,11 +182,19 @@ export async function createReservation(payload) {
 }
 
 export function saveDraft(draft) {
-  writeJson(DRAFT_KEY, draft)
+  writeJson(localStorage, DRAFT_KEY, draft)
 }
 
 export function getDraft() {
-  return readJson(DRAFT_KEY, null)
+  return readJson(localStorage, DRAFT_KEY, null)
+}
+
+export function saveBookingFormDraft(form) {
+  writeJson(sessionStorage, BOOKING_FORM_DRAFT_KEY, form)
+}
+
+export function getBookingFormDraft() {
+  return readJson(sessionStorage, BOOKING_FORM_DRAFT_KEY, null)
 }
 
 export async function getReservations() {
@@ -148,6 +237,52 @@ export async function confirmReservation(reservationCode) {
   return body
 }
 
+export function markMockPaidReservation(reservationCode) {
+  const codes = getMockPaidCodes()
+  if (codes.includes(reservationCode)) return
+  writeJson(localStorage, MOCK_PAID_CODES_KEY, [...codes, reservationCode])
+}
+
+export function createMockPaymentResult({ reservationCode, method, scenario }) {
+  const orderId = `${reservationCode}-${Date.now()}`
+  const paymentKey = `MOCK_PAY_${Math.random().toString(36).slice(2, 10).toUpperCase()}`
+  const transactionId = `MOCK_TX_${Math.random().toString(36).slice(2, 10).toUpperCase()}`
+  const status = scenario === 'SUCCESS' ? 'SUCCESS' : 'FAIL'
+  const failReason = scenario === 'CANCEL'
+    ? '사용자가 결제를 취소했습니다.'
+    : (scenario === 'FAIL' ? '한도 초과로 결제가 실패했습니다.' : null)
+
+  if (scenario === 'SUCCESS') {
+    markMockPaidReservation(reservationCode)
+  } else {
+    clearMockPaidReservation(reservationCode)
+  }
+
+  saveMockPaymentLog({
+    reservationCode,
+    method,
+    status,
+    failReason,
+    paymentKey,
+    orderId,
+    transactionId,
+    approvedAt: scenario === 'SUCCESS' ? new Date().toISOString() : null,
+  })
+
+  return {
+    status,
+    failReason,
+    paymentKey,
+    orderId,
+    transactionId,
+  }
+}
+
+export function getMockPaymentResult(reservationCode) {
+  const logs = getMockPaymentLogs()
+  return logs[reservationCode] ?? null
+}
+
 export async function cancelMyReservation(reservationCode) {
   const response = await fetch(`${API_BASE_URL}/api/reservations/${reservationCode}/cancel`, {
     method: 'POST',
@@ -157,6 +292,62 @@ export async function cancelMyReservation(reservationCode) {
   const body = await response.json().catch(() => null)
   if (!response.ok) {
     throw new Error(body?.message || '예약 취소에 실패했습니다.')
+  }
+
+  clearMockPaidReservation(reservationCode)
+  clearMockPaymentLog(reservationCode)
+  return normalizeReservation(body)
+}
+
+export async function updateMyReservation(reservationCode, payload) {
+  const response = await fetch(`${API_BASE_URL}/api/reservations/${reservationCode}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(body?.message || '예약 수정에 실패했습니다.')
+  }
+
+  return normalizeReservation(body)
+}
+
+export async function adminUpdateReservationStatus(reservationCode, status) {
+  const response = await fetch(`${API_BASE_URL}/api/admin/reservations/${reservationCode}/status`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ status }),
+  })
+
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(body?.message || '관리자 상태 변경에 실패했습니다.')
+  }
+
+  return normalizeReservation(body)
+}
+
+export async function adminUpdateReservation(reservationCode, payload) {
+  const response = await fetch(`${API_BASE_URL}/api/admin/reservations/${reservationCode}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  })
+
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(body?.message || '관리자 예약 수정에 실패했습니다.')
   }
 
   return normalizeReservation(body)
@@ -172,6 +363,9 @@ export async function deleteMyReservation(reservationCode) {
     const body = await response.json().catch(() => null)
     throw new Error(body?.message || '예약 삭제에 실패했습니다.')
   }
+
+  clearMockPaidReservation(reservationCode)
+  clearMockPaymentLog(reservationCode)
 }
 
 export async function getMyPets() {

@@ -47,4 +47,13 @@ public interface ReservationDAO {
 		@Param("checkInDate") LocalDate checkInDate,
 		@Param("checkOutDate") LocalDate checkOutDate
 	);
+
+	int countOverlappingReservationsExcludingReservation(
+		@Param("roomId") Long roomId,
+		@Param("checkInDate") LocalDate checkInDate,
+		@Param("checkOutDate") LocalDate checkOutDate,
+		@Param("reservationCode") String reservationCode
+	);
+
+	int updateReservationByCodeAndUserId(ReservationDTO reservationDTO);
 }

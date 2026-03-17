@@ -209,10 +209,38 @@
       AND user_id = #{userId}
   </delete>
 
+  <update id="updateReservationByCodeAndUserId" parameterType="com.example.demo.reservations.ReservationDTO">
+    UPDATE reservations
+    SET
+      room_id = #{roomId},
+      pet_id = #{petId},
+      checkin_date = #{checkInDate},
+      checkout_date = #{checkOutDate},
+      visit_time = #{visitTime},
+      guardian_name = #{guardianName},
+      guardian_phone = #{guardianPhone},
+      base_amount = #{baseAmount},
+      extra_amount = #{extraAmount},
+      total_amount = #{totalAmount},
+      updated_at = CURRENT_TIMESTAMP
+    WHERE reservation_code = #{reservationCode}
+      AND user_id = #{userId}
+  </update>
+
   <select id="countOverlappingReservations" resultType="int">
     SELECT COUNT(*)
     FROM reservations
     WHERE room_id = #{roomId}
+      AND status IN ('PAYMENT_PENDING', 'CONFIRMED', 'CHECKED_IN')
+      AND checkin_date &lt; #{checkOutDate}
+      AND checkout_date &gt; #{checkInDate}
+  </select>
+
+  <select id="countOverlappingReservationsExcludingReservation" resultType="int">
+    SELECT COUNT(*)
+    FROM reservations
+    WHERE room_id = #{roomId}
+      AND reservation_code != #{reservationCode}
       AND status IN ('PAYMENT_PENDING', 'CONFIRMED', 'CHECKED_IN')
       AND checkin_date &lt; #{checkOutDate}
       AND checkout_date &gt; #{checkInDate}

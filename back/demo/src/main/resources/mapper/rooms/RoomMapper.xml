@@ -93,4 +93,44 @@
       AND checkin_date &lt; #{checkOutDate}
       AND checkout_date &gt; #{checkInDate}
   </select>
+
+  <insert id="insertRoom" parameterType="com.example.demo.rooms.RoomDTO" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO rooms (
+      room_code,
+      name,
+      size_type,
+      max_weight_kg,
+      capacity,
+      description,
+      is_active
+    )
+    VALUES (
+      #{roomCode},
+      #{name},
+      #{sizeType},
+      #{maxWeightKg},
+      #{capacity},
+      #{description},
+      #{isActive}
+    )
+  </insert>
+
+  <update id="updateRoom" parameterType="com.example.demo.rooms.RoomDTO">
+    UPDATE rooms
+    SET
+      room_code = #{roomCode},
+      name = #{name},
+      size_type = #{sizeType},
+      max_weight_kg = #{maxWeightKg},
+      capacity = #{capacity},
+      description = #{description},
+      is_active = #{isActive}
+    WHERE id = #{id}
+  </update>
+
+  <update id="softDeleteRoom">
+    UPDATE rooms
+    SET is_active = 0
+    WHERE id = #{roomId}
+  </update>
 </mapper>

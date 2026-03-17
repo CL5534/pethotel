@@ -134,6 +134,8 @@ function MyPetList({ pets, onChangePets }) {
     }
   }
 
+  const editingPet = pets.find((pet) => pet.id === editingPetId) ?? null
+
   return (
     <section className="myCard myPetSection">
       <div className="myCardHeader">
@@ -141,120 +143,118 @@ function MyPetList({ pets, onChangePets }) {
         <small className="myMuted">{petCountText}</small>
       </div>
 
-      {!showAddForm ? (
-        <button type="button" className="myActionButton" onClick={startAdd}>
-          + 반려견 등록
-        </button>
-      ) : (
-        <article className="myPetCard isEditor">
-          <h3>새 반려견 등록</h3>
-          <div className="myPetEditGrid">
-            <label>
-              <span>이름 (name)</span>
-              <input value={addForm.name} onChange={(event) => handleAddChange('name', event.target.value)} />
-            </label>
-            <label>
-              <span>견종 (breed)</span>
-              <input value={addForm.breed} onChange={(event) => handleAddChange('breed', event.target.value)} />
-            </label>
-            <label>
-              <span>체중 kg (weight_kg)</span>
-              <input
-                type="number"
-                step="0.1"
-                value={addForm.weightKg}
-                onChange={(event) => handleAddChange('weightKg', event.target.value)}
-              />
-            </label>
-            <label>
-              <span>생년월일 (birth_date)</span>
-              <input
-                type="date"
-                value={addForm.birthDate}
-                onChange={(event) => handleAddChange('birthDate', event.target.value)}
-              />
-            </label>
-            <label className="myPetFieldFull">
-              <span>특이사항 (notes)</span>
-              <input value={addForm.notes} onChange={(event) => handleAddChange('notes', event.target.value)} />
-            </label>
-            <div className="myActionRow">
-              <button type="button" className="myActionButton primary" onClick={saveAdd}>등록</button>
-              <button type="button" className="myActionButton" onClick={cancelAdd}>취소</button>
-            </div>
-          </div>
-        </article>
-      )}
+      <button type="button" className="myActionButton" onClick={startAdd}>
+        애견정보등록
+      </button>
 
       {pets.length === 0 ? <p className="myMuted">등록된 반려견 정보가 없습니다.</p> : null}
 
       <div className="myPetGrid">
-        {pets.map((pet) => {
-          const isEditing = editingPetId === pet.id
-
-          if (isEditing) {
-            return (
-              <article key={pet.id} className="myPetCard isEditor">
-                <h3>반려견 정보 수정</h3>
-                <div className="myPetEditGrid">
-                  <label>
-                    <span>이름 (name)</span>
-                    <input value={form.name} onChange={(event) => handleChange('name', event.target.value)} />
-                  </label>
-                  <label>
-                    <span>견종 (breed)</span>
-                    <input value={form.breed} onChange={(event) => handleChange('breed', event.target.value)} />
-                  </label>
-                  <label>
-                    <span>체중 kg (weight_kg)</span>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={form.weightKg}
-                      onChange={(event) => handleChange('weightKg', event.target.value)}
-                    />
-                  </label>
-                  <label>
-                    <span>생년월일 (birth_date)</span>
-                    <input
-                      type="date"
-                      value={form.birthDate ?? ''}
-                      onChange={(event) => handleChange('birthDate', event.target.value)}
-                    />
-                  </label>
-                  <label className="myPetFieldFull">
-                    <span>특이사항 (notes)</span>
-                    <input value={form.notes} onChange={(event) => handleChange('notes', event.target.value)} />
-                  </label>
-                  <div className="myActionRow">
-                    <button type="button" className="myActionButton primary" onClick={saveEdit}>저장</button>
-                    <button type="button" className="myActionButton" onClick={cancelEdit}>취소</button>
-                  </div>
-                </div>
-              </article>
-            )
-          }
-
-          return (
-            <article key={pet.id} className="myPetCard">
-              <div className="myPetCardTop">
-                <h3>{pet.name}</h3>
-                <div className="myPetTopActions">
-                  <button type="button" className="myActionButton" onClick={() => startEdit(pet)}>수정</button>
-                  <button type="button" className="myActionButton danger" onClick={() => removePet(pet.id)}>삭제</button>
-                </div>
+        {pets.map((pet) => (
+          <article key={pet.id} className="myPetCard">
+            <div className="myPetCardTop">
+              <h3>{pet.name}</h3>
+              <div className="myPetTopActions">
+                <button type="button" className="myActionButton" onClick={() => startEdit(pet)}>수정</button>
+                <button type="button" className="myActionButton danger" onClick={() => removePet(pet.id)}>삭제</button>
               </div>
+            </div>
 
-              <dl className="myPetDataList">
-                <div><dt>견종</dt><dd>{pet.breed || '-'}</dd></div>
-                <div><dt>체중(kg)</dt><dd>{pet.weightKg ?? '-'}</dd></div>
-                <div><dt>생년월일</dt><dd>{formatBirthDate(pet.birthDate)}</dd></div>
-                <div><dt>특이사항</dt><dd>{pet.notes || '-'}</dd></div>
-              </dl>
-            </article>
-          )
-        })}
+            <dl className="myPetDataList">
+              <div><dt>견종</dt><dd>{pet.breed || '-'}</dd></div>
+              <div><dt>체중(kg)</dt><dd>{pet.weightKg ?? '-'}</dd></div>
+              <div><dt>생년월일</dt><dd>{formatBirthDate(pet.birthDate)}</dd></div>
+              <div><dt>특이사항</dt><dd>{pet.notes || '-'}</dd></div>
+            </dl>
+          </article>
+        ))}
       </div>
+
+      {showAddForm ? (
+        <div className="myModalBackdrop" role="dialog" aria-modal="true" aria-label="반려견 등록">
+          <div className="myModalCard">
+            <h3>애견정보등록</h3>
+            <div className="myPetEditGrid">
+              <label>
+                <span>이름 (name)</span>
+                <input value={addForm.name} onChange={(event) => handleAddChange('name', event.target.value)} />
+              </label>
+              <label>
+                <span>견종 (breed)</span>
+                <input value={addForm.breed} onChange={(event) => handleAddChange('breed', event.target.value)} />
+              </label>
+              <label>
+                <span>체중 kg (weight_kg)</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={addForm.weightKg}
+                  onChange={(event) => handleAddChange('weightKg', event.target.value)}
+                />
+              </label>
+              <label>
+                <span>생년월일 (birth_date)</span>
+                <input
+                  type="date"
+                  value={addForm.birthDate}
+                  onChange={(event) => handleAddChange('birthDate', event.target.value)}
+                />
+              </label>
+              <label className="myPetFieldFull">
+                <span>특이사항 (notes)</span>
+                <input value={addForm.notes} onChange={(event) => handleAddChange('notes', event.target.value)} />
+              </label>
+              <div className="myActionRow">
+                <button type="button" className="myActionButton primary" onClick={saveAdd}>등록</button>
+                <button type="button" className="myActionButton" onClick={cancelAdd}>취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {editingPet ? (
+        <div className="myModalBackdrop" role="dialog" aria-modal="true" aria-label="반려견 수정">
+          <div className="myModalCard">
+            <h3>{editingPet.name} 정보 수정</h3>
+            <div className="myPetEditGrid">
+              <label>
+                <span>이름 (name)</span>
+                <input value={form.name} onChange={(event) => handleChange('name', event.target.value)} />
+              </label>
+              <label>
+                <span>견종 (breed)</span>
+                <input value={form.breed} onChange={(event) => handleChange('breed', event.target.value)} />
+              </label>
+              <label>
+                <span>체중 kg (weight_kg)</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={form.weightKg}
+                  onChange={(event) => handleChange('weightKg', event.target.value)}
+                />
+              </label>
+              <label>
+                <span>생년월일 (birth_date)</span>
+                <input
+                  type="date"
+                  value={form.birthDate ?? ''}
+                  onChange={(event) => handleChange('birthDate', event.target.value)}
+                />
+              </label>
+              <label className="myPetFieldFull">
+                <span>특이사항 (notes)</span>
+                <input value={form.notes} onChange={(event) => handleChange('notes', event.target.value)} />
+              </label>
+              <div className="myActionRow">
+                <button type="button" className="myActionButton primary" onClick={saveEdit}>저장</button>
+                <button type="button" className="myActionButton" onClick={cancelEdit}>취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {error ? <p className="myError">{error}</p> : null}
       {message ? <p className="mySuccess">{message}</p> : null}

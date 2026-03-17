@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -48,6 +49,15 @@ public class ReservationController {
 	@PostMapping("/{reservationCode}/cancel")
 	public ReservationDTO cancelMyReservation(@PathVariable String reservationCode, HttpSession session) {
 		return reservationService.cancelMyReservation(reservationCode, session);
+	}
+
+	@PutMapping("/{reservationCode}")
+	public ReservationDTO updateMyReservation(
+		@PathVariable String reservationCode,
+		@RequestBody ReservationUpdateRequestDTO requestDTO,
+		HttpSession session
+	) {
+		return reservationService.updateMyReservation(reservationCode, requestDTO, session);
 	}
 
 	@DeleteMapping("/{reservationCode}")

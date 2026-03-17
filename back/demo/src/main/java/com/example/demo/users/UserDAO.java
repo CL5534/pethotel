@@ -14,4 +14,9 @@ public interface UserDAO {
 
 	int updateUserProfile(UserDTO userDTO);
 
+	int updateUserPasswordHashByEmail(
+		@Param("email") String email,
+		@Param("passwordHash") String passwordHash
+	);
+
 }

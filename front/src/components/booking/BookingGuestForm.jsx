@@ -1,17 +1,32 @@
-function BookingGuestForm({ form, today, pets, onChange, onGoMyPage }) {
+function BookingGuestForm({ form, today, pets, fieldErrors, onChange, onGoMyPage }) {
   const hasPets = pets.length > 0
+  const errors = fieldErrors ?? {}
 
   return (
     <>
       <div className="bookingDateRow bookingFieldFull">
         <label className="bookingField bookingDateField">
           <span>체크인 날짜 (필수)</span>
-          <input type="date" min={today} value={form.checkInDate} onChange={(event) => onChange('checkInDate', event.target.value)} />
+          <input
+            type="date"
+            min={today}
+            value={form.checkInDate}
+            onChange={(event) => onChange('checkInDate', event.target.value)}
+            className={errors.checkInDate ? 'bookingInputError' : ''}
+            aria-invalid={errors.checkInDate ? 'true' : 'false'}
+          />
         </label>
 
         <label className="bookingField bookingDateField">
           <span>체크아웃 날짜 (필수)</span>
-          <input type="date" min={form.checkInDate || today} value={form.checkOutDate} onChange={(event) => onChange('checkOutDate', event.target.value)} />
+          <input
+            type="date"
+            min={form.checkInDate || today}
+            value={form.checkOutDate}
+            onChange={(event) => onChange('checkOutDate', event.target.value)}
+            className={errors.checkOutDate ? 'bookingInputError' : ''}
+            aria-invalid={errors.checkOutDate ? 'true' : 'false'}
+          />
         </label>
       </div>
 
@@ -22,12 +37,26 @@ function BookingGuestForm({ form, today, pets, onChange, onGoMyPage }) {
 
       <label className="bookingField">
         <span>보호자 이름 (필수)</span>
-        <input type="text" value={form.ownerName} placeholder="보호자 이름" onChange={(event) => onChange('ownerName', event.target.value)} />
+        <input
+          type="text"
+          value={form.ownerName}
+          placeholder="보호자 이름"
+          onChange={(event) => onChange('ownerName', event.target.value)}
+          className={errors.ownerName ? 'bookingInputError' : ''}
+          aria-invalid={errors.ownerName ? 'true' : 'false'}
+        />
       </label>
 
       <label className="bookingField">
         <span>연락처 (필수)</span>
-        <input type="tel" value={form.contact} placeholder="010-1234-5678" onChange={(event) => onChange('contact', event.target.value)} />
+        <input
+          type="tel"
+          value={form.contact}
+          placeholder="010-1234-5678"
+          onChange={(event) => onChange('contact', event.target.value)}
+          className={errors.contact ? 'bookingInputError' : ''}
+          aria-invalid={errors.contact ? 'true' : 'false'}
+        />
       </label>
 
       <label className="bookingField">
@@ -36,6 +65,8 @@ function BookingGuestForm({ form, today, pets, onChange, onGoMyPage }) {
           value={form.petId}
           onChange={(event) => onChange('petId', event.target.value)}
           disabled={!hasPets}
+          className={errors.petId ? 'bookingInputError' : ''}
+          aria-invalid={errors.petId ? 'true' : 'false'}
         >
           <option value="">반려견 선택</option>
           {pets.map((pet) => (
