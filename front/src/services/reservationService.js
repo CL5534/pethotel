@@ -3,6 +3,7 @@ const DRAFT_KEY = 'pethotel_booking_draft'
 const BOOKING_FORM_DRAFT_KEY = 'pethotel_booking_form_draft'
 const MOCK_PAID_CODES_KEY = 'pethotel_mock_paid_codes'
 const MOCK_PAYMENT_LOGS_KEY = 'pethotel_mock_payment_logs'
+const SAFE_BOOKING_DRAFT_KEYS = ['checkInDate', 'checkOutDate', 'roomType', 'petId', 'visitTime']
 
 function readJson(storage, key, fallback) {
   const raw = storage.getItem(key)
@@ -16,6 +17,16 @@ function readJson(storage, key, fallback) {
 
 function writeJson(storage, key, value) {
   storage.setItem(key, JSON.stringify(value))
+}
+
+function pickBookingDraft(value) {
+  const source = value && typeof value === 'object' ? value : {}
+  return SAFE_BOOKING_DRAFT_KEYS.reduce((acc, key) => {
+    if (source[key] !== undefined && source[key] !== null) {
+      acc[key] = source[key]
+    }
+    return acc
+  }, {})
 }
 
 function getMockPaidCodes() {
@@ -190,11 +201,16 @@ export function getDraft() {
 }
 
 export function saveBookingFormDraft(form) {
-  writeJson(sessionStorage, BOOKING_FORM_DRAFT_KEY, form)
+  writeJson(sessionStorage, BOOKING_FORM_DRAFT_KEY, pickBookingDraft(form))
 }
 
 export function getBookingFormDraft() {
-  return readJson(sessionStorage, BOOKING_FORM_DRAFT_KEY, null)
+  const raw = readJson(sessionStorage, BOOKING_FORM_DRAFT_KEY, null)
+  if (!raw) return null
+  const sanitized = pickBookingDraft(raw)
+  // 기존에 저장된 민감정보(보호자명/연락처/메모 등)는 즉시 제거해 다시 저장한다.
+  writeJson(sessionStorage, BOOKING_FORM_DRAFT_KEY, sanitized)
+  return sanitized
 }
 
 export async function getReservations() {

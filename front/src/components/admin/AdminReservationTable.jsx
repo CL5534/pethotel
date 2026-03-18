@@ -153,7 +153,6 @@ function AdminReservationTable({
             <th>예약번호</th>
             <th>보호자</th>
             <th>연락처</th>
-            <th>반려견</th>
             <th>객실</th>
             <th>일정</th>
             <th>상태</th>
@@ -171,7 +170,6 @@ function AdminReservationTable({
                 <td>{item.reservationCode}</td>
                 <td>{item.guardianName}</td>
                 <td>{item.guardianPhone}</td>
-                <td>{item.petName || '-'}</td>
                 <td>{item.roomName || '-'}</td>
                 <td>{item.checkInDate} ~ {item.checkOutDate}</td>
                 <td>{STATUS_LABEL[item.statusCode] ?? item.status}</td>
@@ -227,7 +225,7 @@ function AdminReservationTable({
           })}
           {pagedReservations.length === 0 ? (
             <tr>
-              <td colSpan={9} className="adminEmptyRow">조회된 예약이 없습니다.</td>
+              <td colSpan={8} className="adminEmptyRow">조회된 예약이 없습니다.</td>
             </tr>
           ) : null}
         </tbody>

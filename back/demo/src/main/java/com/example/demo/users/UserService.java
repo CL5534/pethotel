@@ -1,13 +1,12 @@
 package com.example.demo.users;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -19,12 +18,14 @@ public class UserService {
 	private static final String LOGIN_USER_ID = "LOGIN_USER_ID";
 	private static final String ADMIN_EMAIL = "admin@pethotel.kr";
 	private static final String DEFAULT_ADMIN_PASSWORD = "123qweasdzxc";
+	private static final Pattern LEGACY_SHA256_PATTERN = Pattern.compile("^[a-f0-9]{64}$");
 	private static final int LOGIN_FAIL_LIMIT = 5;
 	private static final long LOCK_MILLIS = 10 * 60 * 1000L;
 	private static final Map<String, Integer> LOGIN_FAIL_COUNT = new ConcurrentHashMap<>();
 	private static final Map<String, Long> LOCKED_UNTIL = new ConcurrentHashMap<>();
 
 	private final UserDAO userDAO;
+	private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
 	public UserService(UserDAO userDAO) {
 		this.userDAO = userDAO;
@@ -39,7 +40,7 @@ public class UserService {
 
 		userDTO.setName(userDTO.getName().trim());
 		userDTO.setEmail(userDTO.getEmail().trim());
-		userDTO.setPasswordHash(hashPassword(userDTO.getPassword()));
+		userDTO.setPasswordHash(encodePassword(userDTO.getPassword()));
 		userDTO.setPhone(userDTO.getPhone().trim());
 		userDTO.setAddress(userDTO.getAddress().trim());
 
@@ -61,7 +62,7 @@ public class UserService {
 
 		UserDTO savedUser = userDAO.selectUserByEmail(email);
 
-		if (savedUser == null || !savedUser.getPasswordHash().equals(hashPassword(userDTO.getPassword()))) {
+		if (savedUser == null || !matchesPassword(userDTO.getPassword(), savedUser.getPasswordHash())) {
 			int failCount = LOGIN_FAIL_COUNT.getOrDefault(email, 0) + 1;
 			LOGIN_FAIL_COUNT.put(email, failCount);
 			if (failCount >= LOGIN_FAIL_LIMIT) {
@@ -69,6 +70,7 @@ public class UserService {
 			}
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
 		}
+		migrateLegacyPasswordHashIfNeeded(savedUser, userDTO.getPassword());
 		LOGIN_FAIL_COUNT.remove(email);
 		LOCKED_UNTIL.remove(email);
 
@@ -159,19 +161,46 @@ public class UserService {
 		return value == null || value.trim().isEmpty();
 	}
 
-	private String hashPassword(String rawPassword) {
-		try {
-			MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-			byte[] hash = messageDigest.digest(rawPassword.getBytes(StandardCharsets.UTF_8));
-			StringBuilder builder = new StringBuilder();
+	private String encodePassword(String rawPassword) {
+		return passwordEncoder.encode(rawPassword);
+	}
 
+	private boolean matchesPassword(String rawPassword, String savedHash) {
+		if (isBlank(savedHash)) {
+			return false;
+		}
+		if (isLegacySha256Hash(savedHash)) {
+			return savedHash.equals(legacySha256(rawPassword));
+		}
+		return passwordEncoder.matches(rawPassword, savedHash);
+	}
+
+	private void migrateLegacyPasswordHashIfNeeded(UserDTO savedUser, String rawPassword) {
+		if (savedUser == null || isBlank(savedUser.getPasswordHash())) {
+			return;
+		}
+		if (!isLegacySha256Hash(savedUser.getPasswordHash())) {
+			return;
+		}
+		userDAO.updateUserPasswordHashByEmail(savedUser.getEmail(), encodePassword(rawPassword));
+	}
+
+	private boolean isLegacySha256Hash(String savedHash) {
+		return LEGACY_SHA256_PATTERN.matcher(savedHash).matches();
+	}
+
+	private String legacySha256(String rawPassword) {
+		// 기존 가입 사용자 호환을 위한 임시 SHA-256 비교 루틴 (로그인 성공 시 bcrypt로 자동 전환됨)
+		try {
+			java.security.MessageDigest messageDigest = java.security.MessageDigest.getInstance("SHA-256");
+			byte[] hash = messageDigest.digest(rawPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			StringBuilder builder = new StringBuilder();
 			for (byte value : hash) {
 				builder.append(String.format("%02x", value));
 			}
-
 			return builder.toString();
-		} catch (NoSuchAlgorithmException exception) {
-			throw new IllegalStateException("비밀번호 해시 생성에 실패했습니다.", exception);
+		} catch (java.security.NoSuchAlgorithmException exception) {
+			throw new IllegalStateException("기존 비밀번호 해시 비교에 실패했습니다.", exception);
 		}
 	}
 
@@ -192,7 +221,7 @@ public class UserService {
 		}
 
 		String adminPassword = resolveAdminPassword();
-		String passwordHash = hashPassword(adminPassword);
+		String passwordHash = encodePassword(adminPassword);
 		UserDTO savedAdmin = userDAO.selectUserByEmail(ADMIN_EMAIL);
 
 		if (savedAdmin == null) {
@@ -207,7 +236,7 @@ public class UserService {
 		}
 
 		boolean shouldSyncPassword = adminPassword.equals(loginPassword)
-			&& !passwordHash.equals(savedAdmin.getPasswordHash());
+			&& !matchesPassword(adminPassword, savedAdmin.getPasswordHash());
 		if (shouldSyncPassword) {
 			userDAO.updateUserPasswordHashByEmail(ADMIN_EMAIL, passwordHash);
 		}

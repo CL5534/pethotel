@@ -1,8 +1,14 @@
 ﻿.adminPage {
-  width: min(var(--container-lg), 100%);
+  width: min(var(--container-xl), 100%);
   margin: 0 auto;
   display: grid;
   gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .adminPage {
+    width: min(var(--container-lg), 100%);
+  }
 }
 
 .adminHeading {
@@ -97,6 +103,26 @@
   margin-top: 6px;
   font-size: 26px;
   color: var(--color-text-strong);
+}
+
+.adminCalendarTitle {
+  margin: 0;
+  font-weight: 700;
+  color: #2f241f;
+}
+
+.adminCalendarInput {
+  border: 1px solid rgba(47, 36, 31, 0.2);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.adminSidebarCalendar {
+  margin-top: 4px;
+  border-top: 1px solid rgba(47, 36, 31, 0.12);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
 }
 
 .adminCard {
@@ -239,3 +265,5 @@
     justify-content: center;
   }
 }
+
+

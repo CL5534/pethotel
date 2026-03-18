@@ -1,8 +1,14 @@
-.communityPage {
-  width: min(var(--container-lg), 100%);
+﻿.communityPage {
+  width: min(var(--container-xl), 100%);
   margin: 0 auto;
   display: grid;
   gap: 28px;
+}
+
+@media (max-width: 1200px) {
+  .communityPage {
+    width: min(var(--container-lg), 100%);
+  }
 }
 
 .communityPageBody {
@@ -15,3 +21,5 @@
     gap: 20px;
   }
 }
+
+

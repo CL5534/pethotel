@@ -1,8 +1,14 @@
 ﻿.myPage {
-  width: min(var(--container-lg), 100%);
+  width: min(var(--container-xl), 100%);
   margin: 0 auto;
   display: grid;
   gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .myPage {
+    width: min(var(--container-lg), 100%);
+  }
 }
 
 .myHeading {
@@ -364,3 +370,5 @@
     grid-template-columns: 1fr;
   }
 }
+
+

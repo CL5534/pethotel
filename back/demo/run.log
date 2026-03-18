@@ -35,19 +35,32 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-03-17T18:35:56.294+09:00  INFO 20756 --- [pethotel] [  restartedMain] com.example.demo.DemoApplication         : Starting DemoApplication using Java 17.0.18 with PID 20756 (C:\Users\cof99\Documents\git\pethotel\back\demo\target\classes started by cof99 in C:\Users\cof99\Documents\git\pethotel\back\demo)
-2026-03-17T18:35:56.297+09:00  INFO 20756 --- [pethotel] [  restartedMain] com.example.demo.DemoApplication         : No active profile set, falling back to 1 default profile: "default"
-2026-03-17T18:35:56.347+09:00  INFO 20756 --- [pethotel] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
-2026-03-17T18:35:56.347+09:00  INFO 20756 --- [pethotel] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
-2026-03-17T18:35:57.325+09:00  INFO 20756 --- [pethotel] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-03-17T18:35:57.339+09:00  INFO 20756 --- [pethotel] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-03-17T18:35:57.339+09:00  INFO 20756 --- [pethotel] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-03-17T18:35:57.374+09:00  INFO 20756 --- [pethotel] [  restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 1027 ms
-2026-03-17T18:35:58.043+09:00  INFO 20756 --- [pethotel] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-03-17T18:35:58.049+09:00  INFO 20756 --- [pethotel] [  restartedMain] com.example.demo.DemoApplication         : Started DemoApplication in 2.139 seconds (process running for 2.556)
-2026-03-17T18:36:08.222+09:00  INFO 20756 --- [pethotel] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-03-17T18:36:08.222+09:00  INFO 20756 --- [pethotel] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-03-17T18:36:08.223+09:00  INFO 20756 --- [pethotel] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 1 ms
-2026-03-17T18:36:08.383+09:00  INFO 20756 --- [pethotel] [nio-8080-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-17T18:36:08.465+09:00  INFO 20756 --- [pethotel] [nio-8080-exec-1] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@6923d87a
-2026-03-17T18:36:08.466+09:00  INFO 20756 --- [pethotel] [nio-8080-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-19T08:51:47.659+09:00  INFO 20420 --- [pethotel] [  restartedMain] com.example.demo.DemoApplication         : Starting DemoApplication using Java 17.0.18 with PID 20420 (C:\Users\cof99\Documents\git\pethotel\back\demo\target\classes started by cof99 in C:\Users\cof99\Documents\git\pethotel\back\demo)
+2026-03-19T08:51:47.663+09:00  INFO 20420 --- [pethotel] [  restartedMain] com.example.demo.DemoApplication         : No active profile set, falling back to 1 default profile: "default"
+2026-03-19T08:51:47.713+09:00  INFO 20420 --- [pethotel] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-03-19T08:51:47.714+09:00  INFO 20420 --- [pethotel] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-03-19T08:51:48.623+09:00  INFO 20420 --- [pethotel] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-03-19T08:51:48.636+09:00  INFO 20420 --- [pethotel] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-19T08:51:48.636+09:00  INFO 20420 --- [pethotel] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-03-19T08:51:48.673+09:00  INFO 20420 --- [pethotel] [  restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 957 ms
+2026-03-19T08:51:49.338+09:00  INFO 20420 --- [pethotel] [  restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-03-19T08:51:49.344+09:00  INFO 20420 --- [pethotel] [  restartedMain] com.example.demo.DemoApplication         : Started DemoApplication in 2.07 seconds (process running for 2.505)
+2026-03-19T08:52:25.828+09:00  INFO 20420 --- [pethotel] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-03-19T08:52:25.829+09:00  INFO 20420 --- [pethotel] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-19T08:52:25.831+09:00  INFO 20420 --- [pethotel] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-03-19T08:52:26.155+09:00  INFO 20420 --- [pethotel] [nio-8080-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-19T08:52:26.263+09:00  INFO 20420 --- [pethotel] [nio-8080-exec-1] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.mariadb.jdbc.Connection@6d500fdc
+2026-03-19T08:52:26.264+09:00  INFO 20420 --- [pethotel] [nio-8080-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:38 min
+[INFO] Finished at: 2026-03-19T08:53:23+09:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:4.0.3:run (default-cli) on project demo: Process terminated with exit code: 1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

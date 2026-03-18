@@ -1,8 +1,14 @@
 ﻿.paymentPage {
-  width: min(var(--container-lg), 100%);
+  width: min(var(--container-xl), 100%);
   margin: 0 auto;
   display: grid;
   gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .paymentPage {
+    width: min(var(--container-lg), 100%);
+  }
 }
 
 .paymentHeading {
@@ -200,3 +206,5 @@
     grid-template-columns: 1fr;
   }
 }
+
+

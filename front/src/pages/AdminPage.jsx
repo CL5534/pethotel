@@ -25,7 +25,7 @@ function AdminPage() {
   const [activeSection, setActiveSection] = useState('dashboard')
   const [reservations, setReservations] = useState([])
   const [rooms, setRooms] = useState([])
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [selectedDate, setSelectedDate] = useState(() => new Date(Date.now() + (9 * 60 * 60 * 1000)).toISOString().slice(0, 10))
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -83,6 +83,22 @@ function AdminPage() {
     const selectedDateOccupancy = totalRoom > 0
       ? Math.round((selectedDateReservations / totalRoom) * 100)
       : 0
+    const selectedDateCheckIn = reservations.filter((item) => item.checkInDate === selectedDate).length
+    const selectedDateCheckOut = reservations.filter((item) => item.checkOutDate === selectedDate).length
+    const selectedDateRevenue = reservations
+      .filter((item) => item.checkInDate === selectedDate && item.statusCode !== 'CANCELED')
+      .reduce((sum, item) => sum + (item.totalAmount ?? 0), 0)
+    const selectedDateStatus = {
+      paymentPending: dateReservations.filter((item) => item.statusCode === 'PAYMENT_PENDING').length,
+      confirmed: dateReservations.filter((item) => item.statusCode === 'CONFIRMED').length,
+      checkedIn: dateReservations.filter((item) => item.statusCode === 'CHECKED_IN').length,
+      checkedOut: dateReservations.filter((item) => item.statusCode === 'CHECKED_OUT').length,
+      canceled: reservations.filter(
+        (item) =>
+          item.statusCode === 'CANCELED'
+          && (item.checkInDate === selectedDate || item.checkOutDate === selectedDate),
+      ).length,
+    }
 
     return {
       todayCheckIn,
@@ -93,6 +109,10 @@ function AdminPage() {
       monthRevenue,
       selectedDateReservations,
       selectedDateOccupancy,
+      selectedDateCheckIn,
+      selectedDateCheckOut,
+      selectedDateRevenue,
+      selectedDateStatus,
     }
   }, [reservations, rooms, selectedDate])
 
@@ -226,6 +246,17 @@ function AdminPage() {
               {section.label}
             </button>
           ))}
+          {activeSection === 'dashboard' ? (
+            <div className="adminSidebarCalendar">
+              <p className="adminCalendarTitle">대시보드 날짜</p>
+              <input
+                type="date"
+                className="adminCalendarInput"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+              />
+            </div>
+          ) : null}
         </aside>
 
         <div className="adminContent">
