@@ -1,29 +1,4 @@
-﻿function AdminRoomTable({ rooms, onCreateRoom, onUpdateRoom, onDeleteRoom }) {
-  const handleCreateRoom = async () => {
-    const roomCode = window.prompt('객실 코드', 'SMALL_NEW')
-    if (roomCode === null) return
-    const name = window.prompt('객실명', '신규 객실')
-    if (name === null) return
-    const sizeType = window.prompt('객실 타입(SMALL/MEDIUM/LARGE)', 'SMALL')
-    if (sizeType === null) return
-    const maxWeightKg = window.prompt('최대중량(kg)', '5')
-    if (maxWeightKg === null) return
-    const capacity = window.prompt('객실 수량', '1')
-    if (capacity === null) return
-    const description = window.prompt('설명', '')
-    if (description === null) return
-
-    await onCreateRoom({
-      roomCode: roomCode.trim(),
-      name: name.trim(),
-      sizeType: sizeType.trim().toUpperCase(),
-      maxWeightKg: Number(maxWeightKg),
-      capacity: Number(capacity),
-      description: description.trim(),
-      isActive: true,
-    })
-  }
-
+﻿function AdminRoomTable({ rooms, onUpdateRoom }) {
   const handleUpdateRoom = async (room) => {
     const roomCode = window.prompt('객실 코드', room.roomCode)
     if (roomCode === null) return
@@ -49,16 +24,10 @@
     })
   }
 
-  const handleDeleteRoom = async (room) => {
-    if (!window.confirm(`${room.name} 객실을 비활성화할까요?`)) return
-    await onDeleteRoom(room.id)
-  }
-
   return (
     <section className="adminCard">
       <div className="adminCardHeader">
         <h2>객실/요금 설정</h2>
-        <button type="button" onClick={handleCreateRoom}>객실 등록</button>
       </div>
       <table className="adminTable">
         <thead>
@@ -81,7 +50,6 @@
                 <td>
                   <div className="adminActionGroup">
                     <button type="button" onClick={() => handleUpdateRoom(room)}>수정</button>
-                    <button type="button" onClick={() => handleDeleteRoom(room)}>삭제</button>
                   </div>
                 </td>
               </tr>

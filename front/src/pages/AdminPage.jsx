@@ -4,8 +4,6 @@ import AdminKpiCards from '../components/admin/AdminKpiCards.jsx'
 import AdminReservationTable from '../components/admin/AdminReservationTable.jsx'
 import AdminRoomTable from '../components/admin/AdminRoomTable.jsx'
 import {
-  createAdminRoom,
-  deleteAdminRoom,
   adminUpdateReservation,
   adminUpdateReservationStatus,
   getReservations,
@@ -182,16 +180,6 @@ function AdminPage() {
     setRooms(roomList)
   }
 
-  const handleCreateRoom = async (payload) => {
-    try {
-      await createAdminRoom(payload)
-      await refreshRooms()
-      setError('')
-    } catch (exception) {
-      setError(exception.message || '객실 등록에 실패했습니다.')
-    }
-  }
-
   const handleUpdateRoom = async (roomId, payload) => {
     try {
       await updateAdminRoom(roomId, payload)
@@ -199,16 +187,6 @@ function AdminPage() {
       setError('')
     } catch (exception) {
       setError(exception.message || '객실 수정에 실패했습니다.')
-    }
-  }
-
-  const handleDeleteRoom = async (roomId) => {
-    try {
-      await deleteAdminRoom(roomId)
-      await refreshRooms()
-      setError('')
-    } catch (exception) {
-      setError(exception.message || '객실 삭제에 실패했습니다.')
     }
   }
 
@@ -277,9 +255,7 @@ function AdminPage() {
           {activeSection === 'room' ? (
             <AdminRoomTable
               rooms={rooms}
-              onCreateRoom={handleCreateRoom}
               onUpdateRoom={handleUpdateRoom}
-              onDeleteRoom={handleDeleteRoom}
             />
           ) : null}
         </div>
